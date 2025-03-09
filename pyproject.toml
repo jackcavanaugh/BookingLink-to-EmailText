@@ -12,5 +12,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "requests>=2.32.3",
     "scraper>=0.1.0",
+    "selenium>=4.29.0",
     "trafilatura>=2.0.0",
+    "webdriver-manager>=4.0.2",
 ]
