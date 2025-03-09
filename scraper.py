@@ -29,6 +29,7 @@ class CalendarScraper:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--disable-extensions')
+        chrome_options.binary_location = "/nix/store/chrome/bin/chromium"  # Set Chrome binary path
 
         try:
             service = Service(ChromeDriverManager().install())
@@ -36,7 +37,7 @@ class CalendarScraper:
             logger.debug("Chrome driver setup successful")
         except Exception as e:
             logger.error(f"Failed to setup Chrome driver: {str(e)}")
-            raise
+            raise RuntimeError(f"Failed to initialize browser: {str(e)}")
 
     def cleanup_driver(self):
         if self.driver:
@@ -62,28 +63,6 @@ class CalendarScraper:
             raise
         finally:
             self.cleanup_driver()
-
-    def _scrape_calendly(self):
-        try:
-            response = requests.get(self.url)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            times = soup.find_all('div', {'class': 'calendar-slot'})
-            return self._format_times(times)
-        except requests.RequestException as e:
-            logger.error(f"Error scraping Calendly: {str(e)}")
-            raise
-
-    def _scrape_outlook(self):
-        try:
-            response = requests.get(self.url)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            times = soup.find_all('div', {'class': 'time-slot'})
-            return self._format_times(times)
-        except requests.RequestException as e:
-            logger.error(f"Error scraping Outlook: {str(e)}")
-            raise
 
     def _scrape_hubspot(self, start_date, end_date):
         if not self.driver:
@@ -137,12 +116,12 @@ class CalendarScraper:
                             logger.debug(f"Added {len(times)} time slots for {date_text}")
 
                     except Exception as e:
-                        logger.error(f"Error processing day {date_text}: {str(e)}")
+                        logger.error(f"Error processing day: {str(e)}")
                         continue
 
             except NoSuchElementException as e:
                 logger.error(f"Could not find calendar elements: {str(e)}")
-                raise
+                raise RuntimeError(f"Failed to find calendar elements: {str(e)}")
 
             if not available_slots:
                 logger.info("No available time slots found")
@@ -151,11 +130,31 @@ class CalendarScraper:
 
         except Exception as e:
             logger.error(f"Error scraping HubSpot calendar: {str(e)}")
+            raise RuntimeError(f"Failed to scrape calendar: {str(e)}")
+
+    def _scrape_calendly(self):
+        try:
+            response = requests.get(self.url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            times = soup.find_all('div', {'class': 'calendar-slot'})
+            return self._format_times(times)
+        except requests.RequestException as e:
+            logger.error(f"Error scraping Calendly: {str(e)}")
+            raise
+
+    def _scrape_outlook(self):
+        try:
+            response = requests.get(self.url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            times = soup.find_all('div', {'class': 'time-slot'})
+            return self._format_times(times)
+        except requests.RequestException as e:
+            logger.error(f"Error scraping Outlook: {str(e)}")
             raise
 
     def _format_times(self, times):
-        # Format times into the required structure
-        # This would be implemented based on the actual data structure
         return []
 
 def scrape_calendar_availability(url, start_date, end_date):

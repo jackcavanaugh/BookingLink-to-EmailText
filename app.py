@@ -46,20 +46,36 @@ def scrape():
                 'error': 'Invalid calendar URL. Supported platforms: Calendly, Outlook, HubSpot'
             }), 400
 
-        availability = scrape_calendar_availability(url, start_date, end_date)
-        
-        if not availability:
-            return jsonify({
-                'error': 'No available time slots found in the selected date range'
-            }), 404
+        try:
+            availability = scrape_calendar_availability(url, start_date, end_date)
 
-        return jsonify({
-            'success': True,
-            'availability': availability
-        })
+            if not availability:
+                return jsonify({
+                    'error': 'No available time slots found in the selected date range'
+                }), 404
+
+            return jsonify({
+                'success': True,
+                'availability': availability
+            })
+
+        except RuntimeError as e:
+            logger.error(f"Runtime error during scraping: {str(e)}")
+            return jsonify({
+                'error': str(e)
+            }), 500
+        except TimeoutException:
+            return jsonify({
+                'error': 'The calendar page took too long to load. Please try again.'
+            }), 504
+        except Exception as e:
+            logger.error(f"Error during scraping: {str(e)}")
+            return jsonify({
+                'error': 'An unexpected error occurred while fetching calendar data. Please try again later.'
+            }), 500
 
     except Exception as e:
-        logger.error(f"Error during scraping: {str(e)}")
+        logger.error(f"Error in route handler: {str(e)}")
         return jsonify({
-            'error': 'An error occurred while fetching calendar data'
+            'error': 'An unexpected error occurred. Please try again later.'
         }), 500
