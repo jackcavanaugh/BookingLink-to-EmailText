@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Availability Formatter</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h1 class="card-title mb-4">Calendar Availability Formatter</h1>
+                        
+                        <form id="scraperForm" class="mb-4">
+                            <div class="mb-3">
+                                <label for="url" class="form-label">Calendar URL</label>
+                                <input type="url" class="form-control" id="url" name="url" required
+                                    placeholder="https://calendly.com/your-link">
+                                <div class="form-text">Supported platforms: Calendly, Outlook, HubSpot</div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="text" class="form-control datepicker" id="start_date" name="start_date" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="text" class="form-control datepicker" id="end_date" name="end_date" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Get Availability
+                            </button>
+                        </form>
+
+                        <div id="result" class="d-none">
+                            <h5>Available Time Slots:</h5>
+                            <div class="position-relative">
+                                <pre id="availabilityText" class="bg-dark p-3 rounded"></pre>
+                                <button class="btn btn-sm btn-secondary position-absolute top-0 end-0 m-2" id="copyBtn">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="error" class="alert alert-danger d-none" role="alert"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

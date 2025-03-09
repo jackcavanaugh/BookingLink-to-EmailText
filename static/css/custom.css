@@ -1,0 +1,38 @@
+/* Custom styles to complement Bootstrap dark theme */
+.card {
+    background-color: var(--bs-dark);
+    border: 1px solid var(--bs-gray-700);
+}
+
+pre {
+    color: var(--bs-light);
+    background-color: var(--bs-gray-900) !important;
+    border: 1px solid var(--bs-gray-700);
+}
+
+.form-control {
+    background-color: var(--bs-gray-900);
+    border-color: var(--bs-gray-700);
+    color: var(--bs-light);
+}
+
+.form-control:focus {
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+}
+
+.flatpickr-calendar {
+    background: var(--bs-gray-900);
+    border-color: var(--bs-gray-700);
+}
+
+/* Ensure proper spacing */
+.container {
+    max-width: 960px;
+}
+
+/* Loading state styling */
+.spinner-border {
+    margin-right: 0.5rem;
+}
