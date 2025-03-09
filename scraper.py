@@ -63,8 +63,6 @@ class CalendarScraper:
         except Exception as e:
             logger.error(f"Error in scraper: {str(e)}")
             raise
-        finally:
-            self.cleanup_driver()
 
     def _scrape_hubspot(self, start_date, end_date):
         if not self.driver:
@@ -79,15 +77,15 @@ class CalendarScraper:
             try:
                 # Try multiple selectors that could indicate calendar is loaded
                 selectors = [
-                    "div[data-e2e='meetings-schedule']",
-                    "div[data-test-id='meetings-schedule']",
-                    "div.calendar-container",
-                    "div.meetings-schedule"
+                    ".DatePickerV2__StyledTable",
+                    ".meetings-schedule",
+                    ".meetings-frame-wrapper",
+                    "[data-test-id='meetings-frame']"
                 ]
 
                 for selector in selectors:
                     try:
-                        WebDriverWait(self.driver, 5).until(
+                        WebDriverWait(self.driver, 10).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                         )
                         logger.debug(f"Calendar loaded with selector: {selector}")
@@ -109,9 +107,9 @@ class CalendarScraper:
             try:
                 # Find available dates with various possible selectors
                 date_selectors = [
-                    "button[data-test-id='date-button']",
-                    "button.date-picker-day",
-                    "button[aria-label*='Available']"
+                    "button[data-test-id='unavailable-date']:not([disabled])",
+                    ".date-picker-btn:not(.disabled)",
+                    "[data-selenium-test='day-button']"
                 ]
 
                 days = []
@@ -134,8 +132,8 @@ class CalendarScraper:
                         # Wait for time slots with multiple possible selectors
                         time_selectors = [
                             "button[data-test-id='time-button']",
-                            "button.time-slot",
-                            "button[aria-label*='Available at']"
+                            ".time-picker-btn:not(.disabled)",
+                            "[data-selenium-test='time-button']"
                         ]
 
                         for selector in time_selectors:
