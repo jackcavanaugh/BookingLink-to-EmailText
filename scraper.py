@@ -29,7 +29,7 @@ class CalendarScraper:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--disable-extensions')
-        chrome_options.binary_location = "/nix/store/chrome/bin/chromium"  # Set Chrome binary path
+        chrome_options.binary_location = "/usr/bin/chromium"  # Updated Chrome binary path
 
         try:
             service = Service(ChromeDriverManager().install())
