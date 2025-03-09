@@ -61,7 +61,7 @@ class CalendarScraper:
             else:
                 raise ValueError("Unsupported calendar platform")
         except Exception as e:
-            logger.error(f"Error during scraping: {str(e)}")
+            logger.error(f"Error in scraper: {str(e)}")
             raise
         finally:
             self.cleanup_driver()
@@ -74,48 +74,85 @@ class CalendarScraper:
             logger.debug(f"Loading HubSpot calendar page: {self.url}")
             self.driver.get(self.url)
 
-            # Wait for initial calendar load
+            # Wait for initial calendar load with multiple possible selectors
             logger.debug("Waiting for calendar to load...")
             try:
-                WebDriverWait(self.driver, 20).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "private-calendar"))
-                )
+                # Try multiple selectors that could indicate calendar is loaded
+                selectors = [
+                    "div[data-e2e='meetings-schedule']",
+                    "div[data-test-id='meetings-schedule']",
+                    "div.calendar-container",
+                    "div.meetings-schedule"
+                ]
+
+                for selector in selectors:
+                    try:
+                        WebDriverWait(self.driver, 5).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                        )
+                        logger.debug(f"Calendar loaded with selector: {selector}")
+                        break
+                    except TimeoutException:
+                        continue
+                else:
+                    raise TimeoutException("Could not find any calendar elements")
+
             except TimeoutException:
                 logger.error("Timeout waiting for calendar to load")
-                raise TimeoutException("Calendar failed to load within expected time")
+                raise TimeoutException("Calendar page took too long to load. Please try again.")
 
             # Extract available time slots
             available_slots = []
 
             try:
-                # Find available dates
-                days = self.driver.find_elements(By.CSS_SELECTOR, "button[data-selenium-test='day-button']:not([disabled])")
-                logger.debug(f"Found {len(days)} available days")
+                # Find available dates with various possible selectors
+                date_selectors = [
+                    "button[data-test-id='date-button']",
+                    "button.date-picker-day",
+                    "button[aria-label*='Available']"
+                ]
+
+                days = []
+                for selector in date_selectors:
+                    days = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    if days:
+                        logger.debug(f"Found {len(days)} available days with selector: {selector}")
+                        break
 
                 for day in days:
                     try:
-                        date_text = day.get_attribute("aria-label")
+                        # Get date text from button
+                        date_text = day.get_attribute("aria-label") or day.text
                         if not date_text:
                             continue
 
                         logger.debug(f"Processing date: {date_text}")
                         day.click()
 
-                        # Wait for time slots to load
-                        WebDriverWait(self.driver, 10).until(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, "button[data-selenium-test='time-button']"))
-                        )
+                        # Wait for time slots with multiple possible selectors
+                        time_selectors = [
+                            "button[data-test-id='time-button']",
+                            "button.time-slot",
+                            "button[aria-label*='Available at']"
+                        ]
 
-                        # Get time slots
-                        time_slots = self.driver.find_elements(By.CSS_SELECTOR, "button[data-selenium-test='time-button']")
-                        times = [slot.text.strip() for slot in time_slots if slot.is_displayed() and slot.text.strip()]
+                        for selector in time_selectors:
+                            try:
+                                WebDriverWait(self.driver, 5).until(
+                                    EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                                )
+                                time_slots = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                                times = [slot.text.strip() for slot in time_slots if slot.is_displayed() and slot.text.strip()]
 
-                        if times:
-                            available_slots.append({
-                                'date': date_text,
-                                'times': times
-                            })
-                            logger.debug(f"Added {len(times)} time slots for {date_text}")
+                                if times:
+                                    available_slots.append({
+                                        'date': date_text,
+                                        'times': times
+                                    })
+                                    logger.debug(f"Added {len(times)} time slots for {date_text}")
+                                break
+                            except TimeoutException:
+                                continue
 
                     except Exception as e:
                         logger.error(f"Error processing day: {str(e)}")
