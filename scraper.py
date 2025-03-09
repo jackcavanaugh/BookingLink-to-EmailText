@@ -95,11 +95,13 @@ class CalendarScraper:
                     except TimeoutException:
                         continue
                 else:
+                    # Log the page source for debugging
+                    logger.debug(f"Page source: {self.driver.page_source}")
                     raise TimeoutException("Could not find any calendar elements")
 
             except TimeoutException:
                 logger.error("Timeout waiting for calendar to load")
-                raise TimeoutException("Calendar page took too long to load. Please try again.")
+                raise TimeoutException("The calendar page took too long to load. Please try again.")
 
             # Extract available time slots
             available_slots = []
