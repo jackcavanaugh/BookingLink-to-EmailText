@@ -22,9 +22,36 @@ pre {
     color: var(--bs-light);
 }
 
+/* Flatpickr dark theme customization */
 .flatpickr-calendar {
     background: var(--bs-gray-900);
     border-color: var(--bs-gray-700);
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.flatpickr-day {
+    color: var(--bs-light) !important;
+    border: 1px solid transparent;
+}
+
+.flatpickr-day.selected {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white !important;
+}
+
+.flatpickr-day:hover {
+    background: var(--bs-gray-700);
+}
+
+.flatpickr-weekday,
+.flatpickr-current-month {
+    color: var(--bs-light) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    fill: var(--bs-light) !important;
 }
 
 /* Ensure proper spacing */
