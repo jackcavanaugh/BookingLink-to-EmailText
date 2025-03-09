@@ -9,7 +9,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 logger = logging.getLogger(__name__)
@@ -29,10 +28,13 @@ class CalendarScraper:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--disable-extensions')
-        chrome_options.binary_location = "/usr/bin/chromium"  # Updated Chrome binary path
+
+        # Set the binary location to the Nix store path
+        chrome_options.binary_location = "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
 
         try:
-            service = Service(ChromeDriverManager().install())
+            # Use system-installed ChromeDriver from Nix store
+            service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             logger.debug("Chrome driver setup successful")
         except Exception as e:
