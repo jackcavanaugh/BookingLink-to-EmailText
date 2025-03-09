@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +21,31 @@ class CalendarScraper:
         self.driver = None
 
     def setup_driver(self):
+        logger.debug("Setting up Chrome driver...")
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-extensions')
+
+        try:
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.debug("Chrome driver setup successful")
+        except Exception as e:
+            logger.error(f"Failed to setup Chrome driver: {str(e)}")
+            raise
 
     def cleanup_driver(self):
         if self.driver:
-            self.driver.quit()
-            self.driver = None
+            try:
+                self.driver.quit()
+            except Exception as e:
+                logger.error(f"Error cleaning up driver: {str(e)}")
+            finally:
+                self.driver = None
 
     def scrape(self, start_date, end_date):
         try:
@@ -42,6 +57,9 @@ class CalendarScraper:
                 return self._scrape_hubspot(start_date, end_date)
             else:
                 raise ValueError("Unsupported calendar platform")
+        except Exception as e:
+            logger.error(f"Error during scraping: {str(e)}")
+            raise
         finally:
             self.cleanup_driver()
 
@@ -68,51 +86,72 @@ class CalendarScraper:
             raise
 
     def _scrape_hubspot(self, start_date, end_date):
-        try:
-            if not self.driver:
-                self.setup_driver()
+        if not self.driver:
+            self.setup_driver()
 
-            logger.debug(f"Scraping HubSpot calendar: {self.url}")
+        try:
+            logger.debug(f"Loading HubSpot calendar page: {self.url}")
             self.driver.get(self.url)
 
-            # Wait for the calendar to load
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "meeting-schedule"))
-            )
+            # Wait for initial calendar load
+            logger.debug("Waiting for calendar to load...")
+            try:
+                WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "private-calendar"))
+                )
+            except TimeoutException:
+                logger.error("Timeout waiting for calendar to load")
+                raise TimeoutException("Calendar failed to load within expected time")
 
             # Extract available time slots
             available_slots = []
-            dates = self.driver.find_elements(By.CLASS_NAME, "day-available")
 
-            for date in dates:
-                date_text = date.get_attribute("data-date")
-                if not date_text:
-                    continue
+            try:
+                # Find available dates
+                days = self.driver.find_elements(By.CSS_SELECTOR, "button[data-selenium-test='day-button']:not([disabled])")
+                logger.debug(f"Found {len(days)} available days")
 
-                # Click on the date to load time slots
-                date.click()
+                for day in days:
+                    try:
+                        date_text = day.get_attribute("aria-label")
+                        if not date_text:
+                            continue
 
-                # Wait for time slots to load
-                WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "time-slot"))
-                )
+                        logger.debug(f"Processing date: {date_text}")
+                        day.click()
 
-                time_slots = self.driver.find_elements(By.CLASS_NAME, "time-slot")
-                times = [slot.text for slot in time_slots if slot.is_displayed()]
+                        # Wait for time slots to load
+                        WebDriverWait(self.driver, 10).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, "button[data-selenium-test='time-button']"))
+                        )
 
-                if times:
-                    available_slots.append({
-                        'date': date_text,
-                        'times': times
-                    })
+                        # Get time slots
+                        time_slots = self.driver.find_elements(By.CSS_SELECTOR, "button[data-selenium-test='time-button']")
+                        times = [slot.text.strip() for slot in time_slots if slot.is_displayed() and slot.text.strip()]
+
+                        if times:
+                            available_slots.append({
+                                'date': date_text,
+                                'times': times
+                            })
+                            logger.debug(f"Added {len(times)} time slots for {date_text}")
+
+                    except Exception as e:
+                        logger.error(f"Error processing day {date_text}: {str(e)}")
+                        continue
+
+            except NoSuchElementException as e:
+                logger.error(f"Could not find calendar elements: {str(e)}")
+                raise
+
+            if not available_slots:
+                logger.info("No available time slots found")
 
             return available_slots
 
         except Exception as e:
-            logger.error(f"Error scraping HubSpot: {str(e)}")
+            logger.error(f"Error scraping HubSpot calendar: {str(e)}")
             raise
-        finally:
-            self.cleanup_driver()
 
     def _format_times(self, times):
         # Format times into the required structure
@@ -122,6 +161,7 @@ class CalendarScraper:
 def scrape_calendar_availability(url, start_date, end_date):
     scraper = CalendarScraper(url)
     try:
+        logger.info(f"Starting calendar scraping for {url}")
         return scraper.scrape(start_date, end_date)
     except Exception as e:
         logger.error(f"Error in scraper: {str(e)}")
