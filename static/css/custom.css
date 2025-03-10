@@ -96,6 +96,11 @@ pre {
     border-color: #ffffff transparent !important;
 }
 
+/* Style year input wrapper background */
+.flatpickr-current-month .numInputWrapper {
+    background-color: #343a40 !important;
+}
+
 /* Month/year navigation arrows */
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
