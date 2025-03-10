@@ -90,6 +90,18 @@ pre {
     fill: #0d6efd !important;
 }
 
+/* Hide year navigation arrows while keeping year visible */
+.flatpickr-current-month .numInputWrapper .arrowUp,
+.flatpickr-current-month .numInputWrapper .arrowDown {
+    display: none !important;
+}
+
+.flatpickr-current-month .numInputWrapper input.cur-year {
+    pointer-events: none !important;
+    border: none !important;
+    background: transparent !important;
+}
+
 /* Error message styling */
 .alert-danger {
     background-color: var(--bs-danger);
