@@ -70,6 +70,14 @@ pre {
     padding: 7px 0 0 0 !important;
 }
 
+/* Style weekday names */
+.flatpickr-weekday {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 90% !important;
+    background: transparent !important;
+}
+
 /* Month/year navigation arrows */
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
