@@ -224,6 +224,7 @@ class CalendarScraper:
         except Exception as e:
             logger.error(f"Calendar extraction error: {str(e)}")
             raise
+
     def _get_time_increment(self, time_slots):
         """Calculate the increment between time slots in minutes."""
         try:
@@ -277,99 +278,6 @@ class CalendarScraper:
 
     def _format_times(self, times):
         return []
-
-    def _extract_available_slots_from_html(self):
-        """Fallback method to extract slots from HTML when selectors fail"""
-        try:
-            logger.debug("Attempting to extract slots directly from HTML")
-            logger.debug(f"Current URL: {self.driver.current_url}")
-            logger.debug(f"Page title: {self.driver.title}")
-            html = self.driver.page_source
-            soup = BeautifulSoup(html, 'html.parser')
-
-            # Try to find dates and times using various patterns
-            available_slots = []
-
-            # Look for elements that might contain dates
-            logger.debug("Attempting to extract date containers from HTML")
-            # Simplify the lambda function to avoid syntax issues
-            def class_filter(class_attr):
-                if not class_attr:
-                    return False
-                if isinstance(class_attr, str):
-                    return any(x in class_attr for x in ['date', 'day', 'calendar'])
-                elif isinstance(class_attr, list):
-                    return any(isinstance(cls, str) and any(x in cls for x in ['date', 'day', 'calendar']) for cls in class_attr)
-                return False
-
-            date_containers = soup.find_all(['div', 'button', 'td'], attrs={'class': class_filter})
-            logger.debug(f"Found {len(date_containers)} potential date containers")
-
-            # Extract text that looks like dates
-            for i, container in enumerate(date_containers):
-                try:
-                    date_text = container.get_text().strip()
-                    logger.debug(f"Container {i} text: '{date_text}'")
-
-                    if date_text and len(date_text) > 1:  # Avoid empty or single-char results
-                        # Simple check if it might be a date
-                        if any(char.isdigit() for char in date_text):
-                            logger.debug(f"Found potential date: {date_text}")
-                            available_slots.append({
-                                'date': date_text,
-                                'times': ['Time information not available']
-                            })
-                except Exception as e:
-                    logger.error(f"Error processing container {i}: {str(e)}")
-                    continue
-
-            if available_slots:
-                logger.debug(f"Extracted {len(available_slots)} potential dates")
-                return available_slots
-            else:
-                logger.debug("No dates found in fallback extraction")
-                return [{'date': 'No dates found', 'times': ['No available times']}]
-
-        except Exception as e:
-            logger.error(f"Error in fallback extraction: {str(e)}")
-            return [{'date': 'Error extracting dates', 'times': ['Error extracting times']}]
-
-    def _create_mock_date_slots(self, start_date, end_date):
-        """Create mock date slots for testing or when extraction fails"""
-        logger.info("Generating mock calendar data")
-        try:
-            from datetime import datetime, timedelta
-
-            # Parse start and end dates
-            start = datetime.strptime(start_date, '%Y-%m-%d')
-            end = datetime.strptime(end_date, '%Y-%m-%d')
-
-            # Generate dates between start and end
-            mock_slots = []
-            current = start
-            while current <= end:
-                date_str = current.strftime('%A, %B %d, %Y')
-                # Generate some random times
-                times = ['9:00 AM', '10:30 AM', '1:00 PM', '2:30 PM', '4:00 PM']
-
-                mock_slots.append({
-                    'date': date_str,
-                    'times': times
-                })
-
-                current += timedelta(days=1)
-
-            logger.debug(f"Generated {len(mock_slots)} mock date slots")
-            return mock_slots
-        except Exception as e:
-            logger.error(f"Error generating mock data: {str(e)}")
-            # Absolute fallback with hardcoded data
-            return [
-                {'date': 'Monday, March 10, 2025', 'times': ['9:00 AM', '2:00 PM']},
-                {'date': 'Tuesday, March 11, 2025', 'times': ['10:00 AM', '3:00 PM']},
-                {'date': 'Wednesday, March 12, 2025', 'times': ['11:00 AM', '4:00 PM']}
-            ]
-
 
 def scrape_calendar_availability(url, start_date, end_date, timezone='UTC'):
     scraper = CalendarScraper(url)
