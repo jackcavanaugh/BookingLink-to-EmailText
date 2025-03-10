@@ -85,36 +85,54 @@ pre {
 }
 
 /* Style year arrows */
-.numInputWrapper span.arrowUp,
-.numInputWrapper span.arrowDown {
-    border: 4px solid transparent !important;
-    height: 0 !important;
-    opacity: 1 !important;
-    padding: 0 !important;
-    cursor: pointer !important;
-    transition: border-bottom-color 0.1s ease, border-top-color 0.1s ease !important;
+.numInputWrapper {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.numInputWrapper span {
     position: absolute !important;
-    right: 2px !important;
+    right: 0 !important;
+    width: 14px !important;
+    height: 50% !important;
+    line-height: 50% !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.numInputWrapper span:after {
+    content: "" !important;
+    position: absolute !important;
+    display: block !important;
     width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
 }
 
 .numInputWrapper span.arrowUp {
-    border-bottom: 4px solid #fff !important;
     top: 0 !important;
 }
 
+.numInputWrapper span.arrowUp:after {
+    border-width: 0 4px 4px 4px !important;
+    border-color: transparent transparent #fff transparent !important;
+}
+
 .numInputWrapper span.arrowDown {
-    border-top: 4px solid #fff !important;
     top: 50% !important;
 }
 
-.numInputWrapper:hover span {
-    opacity: 0.8 !important;
+.numInputWrapper span.arrowDown:after {
+    border-width: 4px 4px 0 4px !important;
+    border-color: #fff transparent transparent transparent !important;
 }
 
-/* Style year input wrapper background */
-.flatpickr-current-month .numInputWrapper {
-    background-color: #343a40 !important;
+.numInputWrapper span:hover {
+    opacity: 0.7 !important;
 }
 
 /* Month/year navigation arrows */
