@@ -4,19 +4,44 @@ document.addEventListener('DOMContentLoaded', function() {
         dateFormat: "Y-m-d",
         minDate: "today",
         onChange: function(selectedDates, dateStr) {
-            // Update end date min date when start date changes
-            endDatePicker.set('minDate', dateStr);
+            // Calculate max end date (2 weeks from start)
+            const maxEndDate = new Date(selectedDates[0]);
+            maxEndDate.setDate(maxEndDate.getDate() + 14);
 
-            // If end date is before new start date, update it
-            if (endDatePicker.selectedDates[0] < selectedDates[0]) {
-                endDatePicker.setDate(dateStr);
+            // Update end date constraints
+            endDatePicker.set('minDate', dateStr);
+            endDatePicker.set('maxDate', maxEndDate);
+
+            // If end date is outside the allowed range, update it
+            if (endDatePicker.selectedDates[0]) {
+                if (endDatePicker.selectedDates[0] < selectedDates[0]) {
+                    endDatePicker.setDate(dateStr);
+                } else if (endDatePicker.selectedDates[0] > maxEndDate) {
+                    endDatePicker.setDate(maxEndDate);
+                    errorDiv.textContent = 'Sorry: maximum 2 week span';
+                    errorDiv.classList.remove('d-none');
+                }
             }
         }
     });
 
     const endDatePicker = flatpickr("#end_date", {
         dateFormat: "Y-m-d",
-        minDate: "today"
+        minDate: "today",
+        onChange: function(selectedDates) {
+            if (startDatePicker.selectedDates[0]) {
+                const maxEndDate = new Date(startDatePicker.selectedDates[0]);
+                maxEndDate.setDate(maxEndDate.getDate() + 14);
+
+                if (selectedDates[0] > maxEndDate) {
+                    errorDiv.textContent = 'Sorry: maximum 2 week span';
+                    errorDiv.classList.remove('d-none');
+                    endDatePicker.setDate(maxEndDate);
+                } else {
+                    errorDiv.classList.add('d-none');
+                }
+            }
+        }
     });
 
     const form = document.getElementById('scraperForm');
@@ -37,6 +62,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (endDate < startDate) {
             errorDiv.textContent = 'End Date cannot be earlier than Start Date';
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+
+        // Calculate date difference
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 14) {
+            errorDiv.textContent = 'Sorry: maximum 2 week span';
             errorDiv.classList.remove('d-none');
             return;
         }
