@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return availability.map(slot => {
             if (!slot.times || slot.times.length === 0) return '';
 
-            // Format date in shorter form
+            // Format date
             const dateObj = new Date(slot.date.replace(/(\d+)(st|nd|rd|th)/, '$1'));
             const formattedDate = dateObj.toLocaleDateString('en-US', { 
                 month: 'short', 
@@ -171,52 +171,39 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add the last block
             timeBlocks.push(formatTimeBlock(currentBlock.start, currentBlock.end, increment_minutes));
 
+            // Join blocks with comma and show date
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
         }).filter(Boolean).join('\n');
     }
 
     function formatTimeBlock(startTime, endTime, increment_minutes) {
-        // Extract components from start time
+        // Debug input values
+        console.log('Format Time Block Input:', {
+            startTime,
+            endTime,
+            increment_minutes
+        });
+
+        // Get start time components
         const [startTimeOnly] = startTime.split(' ');
 
-        // Debug logs for inputs
-        console.log('formatTimeBlock inputs:', { startTime, endTime, increment_minutes });
+        // Get end time components with increment
+        const endDate = new Date(`2000/01/01 ${endTime}`);
+        endDate.setMinutes(endDate.getMinutes() + increment_minutes);
 
-        // Calculate end time with increment
-        const [endTimeOnly, endPeriod] = calculateEndTime(endTime, increment_minutes);
-        console.log('calculateEndTime results:', { endTimeOnly, endPeriod });
+        // Format end time in 12-hour format with period
+        let endHours = endDate.getHours();
+        const endPeriod = endHours >= 12 ? 'PM' : 'AM';
+        endHours = endHours % 12 || 12;
+        const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+        const endTimeStr = `${endHours}:${endMinutes}`;
 
-        // Format as "startTime-endTime period"
-        const formattedBlock = `${startTimeOnly}-${endTimeOnly} ${endPeriod}`;
-        console.log('Final formatted block:', formattedBlock);
+        // Create final formatted string
+        const formattedBlock = `${startTimeOnly}-${endTimeStr} ${endPeriod}`;
+
+        // Debug output value
+        console.log('Formatted Output:', formattedBlock);
 
         return formattedBlock;
-    }
-
-    function calculateEndTime(timeStr, increment) {
-        console.log('calculateEndTime input:', timeStr, increment);
-
-        const [time, period] = timeStr.split(' ');
-        const [hours, minutes] = time.split(':').map(Number);
-
-        // Convert to 24-hour format
-        let hour24 = hours;
-        if (period === 'PM' && hours !== 12) hour24 += 12;
-        if (period === 'AM' && hours === 12) hour24 = 0;
-
-        console.log('24-hour format:', hour24);
-
-        // Create date object and add increment
-        const date = new Date(2000, 0, 1, hour24, minutes);
-        date.setMinutes(date.getMinutes() + increment);
-
-        // Convert back to 12-hour format
-        let newHours = date.getHours();
-        const newPeriod = newHours >= 12 ? 'PM' : 'AM';
-        newHours = newHours % 12 || 12;
-
-        console.log('Final calculated time:', { newHours, minutes: date.getMinutes(), newPeriod });
-
-        return [`${newHours}:${date.getMinutes().toString().padStart(2, '0')}`, newPeriod];
     }
 });
