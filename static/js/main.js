@@ -172,12 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `${newHours}:${newMins.toString().padStart(2, '0')} ${newPeriod}`;
             }
 
-            // Helper function to format time without period
-            function formatTimeWithoutPeriod(timeStr) {
-                const [time, period] = timeStr.split(' ');
-                return time;
-            }
-
             // Process consecutive times
             for (let i = 1; i < slot.times.length; i++) {
                 const currentTime = new Date(`2000/01/01 ${slot.times[i]}`);
@@ -187,9 +181,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (diffMinutes <= increment_minutes) {
                     currentBlock.end = slot.times[i];
                 } else {
-                    // Calculate actual end time by adding increment_minutes
+                    // Get the final end time with period
                     const endTime = addMinutes(currentBlock.end, increment_minutes);
-                    timeBlocks.push(`${formatTimeWithoutPeriod(currentBlock.start)}-${formatTimeWithoutPeriod(endTime)}`);
+                    const [startTime] = currentBlock.start.split(' '); // Remove AM/PM from start
+                    const [endTimeValue, endPeriod] = endTime.split(' '); // Keep AM/PM from end
+                    timeBlocks.push(`${startTime}-${endTimeValue} ${endPeriod}`);
 
                     currentBlock = {
                         start: slot.times[i],
@@ -200,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add the last block
             const finalEndTime = addMinutes(currentBlock.end, increment_minutes);
-            timeBlocks.push(`${formatTimeWithoutPeriod(currentBlock.start)}-${formatTimeWithoutPeriod(finalEndTime)}`);
+            const [startTime] = currentBlock.start.split(' '); // Remove AM/PM from start
+            const [endTimeValue, endPeriod] = finalEndTime.split(' '); // Keep AM/PM from end
+            timeBlocks.push(`${startTime}-${endTimeValue} ${endPeriod}`);
 
             // Return formatted date with time blocks
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
