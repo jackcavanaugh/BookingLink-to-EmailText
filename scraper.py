@@ -1,6 +1,6 @@
 import logging
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlencode
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -107,125 +107,123 @@ class CalendarScraper:
             logger.debug(f"Loading HubSpot calendar page: {self.url}")
             logger.debug(f"Start date: {start_date}, End date: {end_date}, Timezone: {timezone}")
 
-            # Format the date and construct URL with timezone
-            try:
-                start_obj = datetime.strptime(start_date, '%Y-%m-%d')
-                start_formatted = start_obj.strftime('%m-%d-%Y')
+            # Parse start and end dates
+            start_obj = datetime.strptime(start_date, '%Y-%m-%d')
+            end_obj = datetime.strptime(end_date, '%Y-%m-%d')
 
-                # Construct query parameters
-                params = {
-                    'date': start_formatted,
-                    'timezone': timezone
-                }
+            # Will store all available slots across dates
+            all_available_slots = []
 
-                # Add parameters to URL
-                if '?' in self.url:
-                    direct_url = f"{self.url}&{urlencode(params)}"
-                else:
-                    direct_url = f"{self.url}?{urlencode(params)}"
+            # Loop through each date in the range
+            current_date = start_obj
+            while current_date <= end_obj:
+                try:
+                    # Format current date for URL
+                    date_formatted = current_date.strftime('%m-%d-%Y')
+                    target_month_day = current_date.strftime('%B %-d')  # "March 10"
+                    target_month_day_suffix = target_month_day + self._get_day_suffix(current_date.day)  # "March 10th"
 
-                logger.debug(f"Attempting to navigate to URL: {direct_url}")
+                    logger.info(f"\nChecking availability for: {target_month_day}")
 
-                # Load the page
-                self.driver.get(direct_url)
+                    # Construct query parameters
+                    params = {
+                        'date': date_formatted,
+                        'timezone': timezone
+                    }
 
-                # Log initial page state
-                logger.debug("Initial page load complete.")
-                initial_html = self.driver.page_source
-                logger.debug(f"Initial HTML snippet (first 500 chars): {initial_html[:500]}")
+                    # Add parameters to URL
+                    if '?' in self.url:
+                        direct_url = f"{self.url}&{urlencode(params)}"
+                    else:
+                        direct_url = f"{self.url}?{urlencode(params)}"
 
-                # Format target date strings
-                target_month_day = start_obj.strftime('%B %-d')  # "March 10"
-                target_month_day_suffix = start_obj.strftime('%B %-d') + self._get_day_suffix(start_obj.day)  # "March 10th"
-                logger.info(f"Looking for exact match of: '{target_month_day}' or '{target_month_day_suffix}'")
+                    logger.debug(f"Attempting to navigate to URL: {direct_url}")
 
-                # Wait for calendar elements
-                logger.debug("Waiting for calendar elements...")
-                WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 
-                    '[data-test-id="time-picker-btn"], [class*="calendar"], [class*="date-picker"]'))
-                )
-                logger.debug("Calendar elements found")
+                    # Load the page
+                    self.driver.get(direct_url)
 
-                # Find all date buttons
-                date_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
-                    'button[data-test-id="available-date"], button[class*="date"], [role="button"][aria-label*="March"], div[role="button"]')
+                    # Wait for calendar elements
+                    logger.debug("Waiting for calendar elements...")
+                    WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 
+                        '[data-test-id="time-picker-btn"], [class*="calendar"], [class*="date-picker"]'))
+                    )
 
-                # Get and log all available dates first
-                all_dates = []
-                logger.info("\n=== Available Dates ===")
-                for i, btn in enumerate(date_buttons):
-                    try:
-                        text = btn.text.strip()
-                        label = btn.get_attribute('aria-label') or ''
-                        if label or text:
-                            all_dates.append(f"{label or text}")
-                            logger.info(f"Found date: '{label or text}'")
-                    except Exception as e:
-                        logger.error(f"Error getting date button {i} details: {str(e)}")
+                    # Find all date buttons
+                    date_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
+                        'button[data-test-id="available-date"], button[class*="date"], [role="button"][aria-label*="March"], div[role="button"]')
 
-                # Now look for exact match only
-                target_found = False
-                for i, btn in enumerate(date_buttons):
-                    try:
-                        text = btn.text.strip()
-                        label = btn.get_attribute('aria-label') or ''
+                    # Now look for exact match only
+                    target_found = False
+                    for btn in date_buttons:
+                        try:
+                            text = btn.text.strip()
+                            label = btn.get_attribute('aria-label') or ''
 
-                        # Only accept if the full date string matches exactly
-                        is_target = (
-                            label.lower() == target_month_day.lower() or
-                            label.lower() == target_month_day_suffix.lower()
-                        )
-
-                        if is_target:
-                            logger.info(f"Found exact match for target date: {label}")
-                            target_found = True
-
-                            # Click date and wait for times
-                            self.driver.execute_script("arguments[0].click();", btn)
-                            logger.debug("Clicked matching date button")
-
-                            # Extract times
-                            time_buttons = WebDriverWait(self.driver, 5).until(
-                                EC.presence_of_all_elements_located((By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]'))
+                            # Only accept if the full date string matches exactly
+                            is_target = (
+                                label.lower() == target_month_day.lower() or
+                                label.lower() == target_month_day_suffix.lower()
                             )
 
-                            times = []
-                            for time_btn in time_buttons:
-                                time_text = time_btn.text.strip()
-                                if time_text:
-                                    # Convert time from GMT to target timezone
-                                    converted_time = self._convert_time_to_timezone(time_text, timezone)
-                                    times.append(converted_time)
-                                    logger.info(f"Found time slot: {time_text} -> {converted_time} ({timezone})")
+                            if is_target:
+                                logger.info(f"Found exact match for target date: {label}")
+                                target_found = True
 
-                            if times:
-                                return [{
-                                    'date': label or target_month_day,
-                                    'times': times,
-                                    'timezone': timezone
-                                }]
-                            else:
-                                error_msg = f"The date {target_month_day} is available but has no time slots. Please try another date."
-                                logger.error(error_msg)
-                                raise ValueError(error_msg)
+                                # Click date and wait for times
+                                self.driver.execute_script("arguments[0].click();", btn)
+                                logger.debug("Clicked matching date button")
 
-                    except Exception as e:
-                        logger.error(f"Error processing button {i}: {str(e)}")
+                                # Extract times
+                                time_buttons = WebDriverWait(self.driver, 5).until(
+                                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]'))
+                                )
 
-                # If we get here, we didn't find the exact date
-                available_dates_str = ', '.join(all_dates) if all_dates else 'No dates found'
-                error_msg = f"The date {target_month_day} is not available for booking. Available dates are: {available_dates_str}"
+                                times = []
+                                for time_btn in time_buttons:
+                                    time_text = time_btn.text.strip()
+                                    if time_text:
+                                        # Convert time from GMT to target timezone
+                                        converted_time = self._convert_time_to_timezone(time_text, timezone)
+                                        times.append(converted_time)
+                                        logger.info(f"Found time slot: {time_text} -> {converted_time} ({timezone})")
+
+                                if times:
+                                    all_available_slots.append({
+                                        'date': label or target_month_day,
+                                        'times': times,
+                                        'timezone': timezone
+                                    })
+                                    logger.info(f"Added {len(times)} time slots for {target_month_day}")
+                                    break
+                                else:
+                                    logger.warning(f"No time slots available for {target_month_day}")
+
+                        except Exception as e:
+                            logger.error(f"Error processing button: {str(e)}")
+
+                    if not target_found:
+                        logger.warning(f"Date {target_month_day} not available")
+
+                except Exception as e:
+                    logger.error(f"Error processing date {current_date.strftime('%Y-%m-%d')}: {str(e)}")
+
+                # Move to next date
+                current_date = current_date + timedelta(days=1)
+
+            if not all_available_slots:
+                error_msg = f"No available slots found between {start_date} and {end_date}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 
-            except TimeoutException as e:
-                logger.error(f"Timeout waiting for calendar elements: {str(e)}")
-                raise TimeoutException(f"The calendar page took too long to load. Please try again.")
-            except Exception as e:
-                logger.error(f"Error during calendar extraction: {str(e)}")
-                raise
+            return all_available_slots
 
+        except TimeoutException as e:
+            logger.error(f"Timeout waiting for calendar elements: {str(e)}")
+            raise TimeoutException(f"The calendar page took too long to load. Please try again.")
+        except Exception as e:
+            logger.error(f"Error during calendar extraction: {str(e)}")
+            raise
         finally:
             try:
                 self.driver.switch_to.default_content()
