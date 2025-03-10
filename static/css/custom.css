@@ -32,6 +32,7 @@ pre {
 .flatpickr-day {
     color: var(--bs-light) !important;
     border: 1px solid transparent;
+    background: transparent;
 }
 
 .flatpickr-day.selected {
@@ -40,29 +41,29 @@ pre {
     color: white !important;
 }
 
-.flatpickr-day:hover {
+.flatpickr-day:hover:not(.disabled):not(.notAllowed) {
     background: var(--bs-gray-700);
 }
 
-/* Style for disabled/unavailable dates */
+/* Enhanced styling for disabled/unavailable dates */
 .flatpickr-day.disabled,
 .flatpickr-day.prevMonthDay.disabled,
 .flatpickr-day.nextMonthDay.disabled,
 .flatpickr-day.notAllowed,
 .flatpickr-day.notAllowed.prevMonthDay,
 .flatpickr-day.notAllowed.nextMonthDay {
+    background-color: var(--bs-gray-800) !important;
     color: var(--bs-gray-600) !important;
-    background: transparent;
-    border-color: transparent;
-    cursor: not-allowed;
-    text-decoration: line-through;
-    opacity: 0.5;
+    border-color: transparent !important;
+    cursor: not-allowed !important;
+    text-decoration: line-through !important;
+    opacity: 0.35 !important;
 }
 
 .flatpickr-day.disabled:hover,
 .flatpickr-day.prevMonthDay.disabled:hover,
 .flatpickr-day.nextMonthDay.disabled:hover {
-    background: transparent;
+    background-color: var(--bs-gray-800) !important;
 }
 
 .flatpickr-weekday,
