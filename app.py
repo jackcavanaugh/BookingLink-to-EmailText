@@ -82,8 +82,9 @@ def scrape():
         url = request.form.get('url', '').strip()
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
+        timezone = request.form.get('timezone', 'UTC')
 
-        logger.debug(f"Request parameters - URL: {url}, Start: {start_date}, End: {end_date}")
+        logger.debug(f"Request parameters - URL: {url}, Start: {start_date}, End: {end_date}, Timezone: {timezone}")
 
         if not url or not start_date or not end_date:
             return jsonify({
@@ -96,7 +97,7 @@ def scrape():
             }), 400
 
         try:
-            availability = scrape_calendar_availability(url, start_date, end_date)
+            availability = scrape_calendar_availability(url, start_date, end_date, timezone)
 
             if not availability:
                 return jsonify({
@@ -118,7 +119,7 @@ def scrape():
                 }
                 # Add timezone disclaimer if no timezone info available
                 if not any(slot.get('timezone') for slot in availability):
-                    response_data['note'] = 'Times shown in calendar owner\'s timezone'
+                    response_data['note'] = f'Times shown in {timezone}'
                 return jsonify(response_data)
             else:
                 logger.error(f"Invalid availability format: {type(availability)}")

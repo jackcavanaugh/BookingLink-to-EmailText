@@ -15,7 +15,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h1 class="card-title mb-4">Calendar Availability Formatter</h1>
-                        
+
                         <form id="scraperForm" class="mb-4">
                             <div class="mb-3">
                                 <label for="url" class="form-label">Calendar URL</label>
@@ -25,13 +25,25 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label for="start_date" class="form-label">Start Date</label>
                                     <input type="text" class="form-control datepicker" id="start_date" name="start_date" required>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label for="end_date" class="form-label">End Date</label>
                                     <input type="text" class="form-control datepicker" id="end_date" name="end_date" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="timezone" class="form-label">Timezone</label>
+                                    <select class="form-select" id="timezone" name="timezone" required>
+                                        <option value="America/New_York">Eastern Time</option>
+                                        <option value="America/Chicago">Central Time</option>
+                                        <option value="America/Denver">Mountain Time</option>
+                                        <option value="America/Los_Angeles">Pacific Time</option>
+                                        <option value="America/Anchorage">Alaska Time</option>
+                                        <option value="Pacific/Honolulu">Hawaii Time</option>
+                                        <option value="UTC">UTC</option>
+                                    </select>
                                 </div>
                             </div>
 

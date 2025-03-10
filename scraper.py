@@ -1,7 +1,7 @@
 import logging
 from bs4 import BeautifulSoup
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -52,33 +52,45 @@ class CalendarScraper:
             finally:
                 self.driver = None
 
-    def scrape(self, start_date, end_date):
+    def scrape(self, start_date, end_date, timezone='UTC'):
         try:
             if 'calendly.com' in self.domain:
-                return self._scrape_calendly()
+                return self._scrape_calendly(timezone)
             elif 'outlook.office365.com' in self.domain:
-                return self._scrape_outlook()
+                return self._scrape_outlook(timezone)
             elif 'meetings.hubspot.com' in self.domain:
-                return self._scrape_hubspot(start_date, end_date)
+                return self._scrape_hubspot(start_date, end_date, timezone)
             else:
                 raise ValueError("Unsupported calendar platform")
         except Exception as e:
             logger.error(f"Error in scraper: {str(e)}")
             raise
 
-    def _scrape_hubspot(self, start_date, end_date):
+    def _scrape_hubspot(self, start_date, end_date, timezone='UTC'):
         if not self.driver:
             self.setup_driver()
 
         try:
             logger.debug(f"Loading HubSpot calendar page: {self.url}")
-            logger.debug(f"Start date: {start_date}, End date: {end_date}")
+            logger.debug(f"Start date: {start_date}, End date: {end_date}, Timezone: {timezone}")
 
-            # Format the date and construct URL
+            # Format the date and construct URL with timezone
             try:
                 start_obj = datetime.strptime(start_date, '%Y-%m-%d')
                 start_formatted = start_obj.strftime('%m-%d-%Y')
-                direct_url = f"{self.url}&date={start_formatted}" if '?' in self.url else f"{self.url}?date={start_formatted}"
+
+                # Construct query parameters
+                params = {
+                    'date': start_formatted,
+                    'timezone': timezone
+                }
+
+                # Add parameters to URL
+                if '?' in self.url:
+                    direct_url = f"{self.url}&{urlencode(params)}"
+                else:
+                    direct_url = f"{self.url}?{urlencode(params)}"
+
                 logger.debug(f"Attempting to navigate to URL: {direct_url}")
 
                 # Load the page
@@ -86,13 +98,6 @@ class CalendarScraper:
 
                 # Log initial page state
                 logger.debug("Initial page load complete.")
-                logger.debug(f"Page title: {self.driver.title}")
-                logger.debug(f"Current URL: {self.driver.current_url}")
-
-                # Wait for body to be present and log initial HTML
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
                 initial_html = self.driver.page_source
                 logger.debug(f"Initial HTML snippet (first 500 chars): {initial_html[:500]}")
 
@@ -109,7 +114,7 @@ class CalendarScraper:
                 )
                 logger.debug("Calendar elements found")
 
-                # Find all date buttons first
+                # Find all date buttons
                 date_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
                     'button[data-test-id="available-date"], button[class*="date"], [role="button"][aria-label*="March"], div[role="button"]')
 
@@ -125,9 +130,6 @@ class CalendarScraper:
                             logger.info(f"Found date: '{label or text}'")
                     except Exception as e:
                         logger.error(f"Error getting date button {i} details: {str(e)}")
-
-                # Log what we're looking for
-                logger.info(f"\nLooking for exact match of: '{target_month_day}' or '{target_month_day_suffix}'")
 
                 # Now look for exact match only
                 target_found = False
@@ -163,16 +165,6 @@ class CalendarScraper:
                                     logger.info(f"Found time slot: {time_text}")
 
                             if times:
-                                # Look for timezone information
-                                timezone_element = self.driver.find_elements(By.CSS_SELECTOR, '[class*="timezone"], [data-test-id*="timezone"]')
-                                timezone = None
-                                if timezone_element:
-                                    try:
-                                        timezone = timezone_element[0].text.strip()
-                                        logger.info(f"Found timezone: {timezone}")
-                                    except Exception as e:
-                                        logger.error(f"Error getting timezone: {str(e)}")
-
                                 return [{
                                     'date': label or target_month_day,
                                     'times': times,
@@ -213,7 +205,7 @@ class CalendarScraper:
             suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
         return suffix
 
-    def _scrape_calendly(self):
+    def _scrape_calendly(self, timezone='UTC'):
         try:
             response = requests.get(self.url)
             response.raise_for_status()
@@ -224,7 +216,7 @@ class CalendarScraper:
             logger.error(f"Error scraping Calendly: {str(e)}")
             raise
 
-    def _scrape_outlook(self):
+    def _scrape_outlook(self, timezone='UTC'):
         try:
             response = requests.get(self.url)
             response.raise_for_status()
@@ -331,11 +323,11 @@ class CalendarScraper:
             ]
 
 
-def scrape_calendar_availability(url, start_date, end_date):
+def scrape_calendar_availability(url, start_date, end_date, timezone='UTC'):
     scraper = CalendarScraper(url)
     try:
         logger.info(f"Starting calendar scraping for {url}")
-        return scraper.scrape(start_date, end_date)
+        return scraper.scrape(start_date, end_date, timezone)
     except Exception as e:
         logger.error(f"Error in scraper: {str(e)}")
         raise
