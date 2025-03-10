@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
             timezoneInfo.textContent = infoText.join(' • ');
 
             // Display results
-            availabilityText.textContent = formatAvailability(data.availability);
+            availabilityText.textContent = formatAvailability(data.availability, data.increment_minutes);
             resultDiv.classList.remove('d-none');
         } catch (error) {
             errorDiv.textContent = error.message;
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    function formatAvailability(availability) {
+    function formatAvailability(availability, increment_minutes) {
         if (!availability) return '';
 
         return availability.map(slot => {
@@ -161,10 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const diffMinutes = (currentTime - prevTime) / (1000 * 60);
 
                 // Check if times are consecutive (based on increment)
-                if (diffMinutes <= 30) {  // Assuming 30-min increment max
+                if (diffMinutes <= increment_minutes) {
                     currentBlock.end = slot.times[i];
                 } else {
-                    timeBlocks.push(`${currentBlock.start} - ${currentBlock.end}`);
+                    timeBlocks.push(`${currentBlock.start} - ${currentBlock.end} (${increment_minutes}min)`);
                     currentBlock = {
                         start: slot.times[i],
                         end: slot.times[i]
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Add the last block
-            timeBlocks.push(`${currentBlock.start} - ${currentBlock.end}`);
+            timeBlocks.push(`${currentBlock.start} - ${currentBlock.end} (${increment_minutes}min)`);
 
             // Return formatted date with time blocks
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
