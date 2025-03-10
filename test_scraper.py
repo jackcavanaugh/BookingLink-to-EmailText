@@ -34,10 +34,15 @@ try:
 
         if available_slots:
             logger.info("\nExtracted available slots:")
-            for slot in available_slots:
+            for slot in available_slots.get('slots', []):
                 logger.info("-" * 50)
                 logger.info(f"Date: {slot['date']}")
-                logger.info(f"Times: {', '.join(slot['times'])}")
+                logger.info("Times:")
+                for time in slot['times']:
+                    # Log each time slot with its components
+                    time_parts = time.split(' ')
+                    logger.info(f"  Raw time: {time}")
+                    logger.info(f"  Components: Time={time_parts[0]}, Period={time_parts[1] if len(time_parts) > 1 else 'MISSING'}")
         else:
             logger.warning("No available slots were returned")
 
