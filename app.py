@@ -113,7 +113,7 @@ def scrape():
             scrape_thread.start()
             
             # Wait for the thread to complete with a timeout
-            scrape_thread.join(timeout=60)  # 60 second timeout for HubSpot which is slower
+            scrape_thread.join(timeout=30)  # 30 second timeout to prevent worker timeouts
             
             if scrape_thread.is_alive():
                 # Timeout occurred

@@ -290,21 +290,21 @@ class CalendarScraper:
                 # Wait longer for the HubSpot calendar to fully load
                 logger.debug("Waiting for HubSpot calendar to fully load (10 seconds)...")
                 time.sleep(10)
-                
+
                 # Find available date buttons with explicit wait
                 logger.debug("Looking for available date buttons...")
                 try:
                     WebDriverWait(self.driver, 15).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-test-id="available-date"]'))
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'button[class*="date"], div[role="button"][aria-label*="March"], [data-test-id="available-date"]'))
                     )
                     logger.debug("Found at least one available date button")
                 except TimeoutException:
                     logger.warning("Timeout waiting for available date buttons")
-                
-                # Find all available date buttons
-                date_buttons = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id="available-date"]')
+
+                # Find all available date buttons with more flexible selectors
+                date_buttons = self.driver.find_elements(By.CSS_SELECTOR, 'button[class*="date"], div[role="button"][aria-label*="March"], [data-test-id="available-date"]')
                 logger.debug(f"Found {len(date_buttons)} available date buttons")
-                
+
                 # Save screenshot after finding date buttons
                 try:
                     self.driver.save_screenshot("/tmp/hubspot_dates_found.png")
@@ -322,9 +322,9 @@ class CalendarScraper:
                             date_info.append(f"Button {i}: label='{label}', text='{text}'")
                         except Exception as e:
                             logger.error(f"Error getting date button {i} info: {str(e)}")
-                    
+
                     logger.debug(f"Available date buttons: {date_info}")
-                    
+
                     # Extract and process all available dates first
                     for i, date_btn in enumerate(date_buttons):
                         try:
@@ -341,7 +341,7 @@ class CalendarScraper:
                                     import re
                                     date_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_label)
                                     logger.debug(f"Cleaned date string: '{date_clean}'")
-                                    
+
                                     # Try to parse the date
                                     date_obj = datetime.strptime(date_clean, "%B %d")
                                     # Add year
@@ -364,18 +364,18 @@ class CalendarScraper:
                                     # Use JavaScript click for better reliability
                                     self.driver.execute_script("arguments[0].click();", date_btn)
                                     logger.debug(f"Clicked on date button for {full_date}")
-                                    
-                                    # Wait for times to load - longer wait to ensure loading completes
+
+                                    # Use shorter timeout to prevent browser hanging
                                     logger.debug("Waiting for time slots to load...")
-                                    time.sleep(3)
-                                    
+                                    time.sleep(1.5)
+
                                     # Take screenshot after clicking date
                                     try:
                                         self.driver.save_screenshot(f"/tmp/hubspot_times_{i}.png")
                                         logger.debug(f"Saved screenshot after clicking date {i} to /tmp/hubspot_times_{i}.png")
                                     except Exception as e:
                                         logger.error(f"Failed to save screenshot: {str(e)}")
-                                    
+
                                     # Find available time slots
                                     time_buttons = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]')
                                     logger.debug(f"Found {len(time_buttons)} time buttons for {full_date}")
@@ -387,14 +387,14 @@ class CalendarScraper:
                                         if time_text:
                                             time_slots.append(time_text)
                                             logger.debug(f"Found time slot: {time_text} for {full_date}")
-                                    
+
                                     # Check if we found times
                                     if time_slots:
                                         logger.debug(f"Adding {len(time_slots)} time slots for {full_date}")
                                         available_slots_by_date[full_date] = time_slots
                                     else:
                                         logger.warning(f"No time slots found for {full_date}")
-                                        
+
                                 except Exception as e:
                                     logger.error(f"Error clicking date or extracting times: {str(e)}")
                         except Exception as e:
