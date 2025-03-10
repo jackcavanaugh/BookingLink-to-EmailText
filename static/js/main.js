@@ -155,16 +155,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 end: slot.times[0]
             };
 
+            // Helper function to parse time and add minutes
+            function addMinutes(timeStr, minutes) {
+                const [time, period] = timeStr.split(' ');
+                const [hours, mins] = time.split(':').map(Number);
+                const date = new Date(2000, 0, 1, 
+                    period === 'PM' && hours !== 12 ? hours + 12 : hours === 12 && period === 'AM' ? 0 : hours, 
+                    mins);
+                date.setMinutes(date.getMinutes() + minutes);
+
+                let newHours = date.getHours();
+                const newMins = date.getMinutes();
+                const newPeriod = newHours >= 12 ? 'PM' : 'AM';
+                newHours = newHours % 12 || 12;
+
+                return `${newHours}:${newMins.toString().padStart(2, '0')} ${newPeriod}`;
+            }
+
+            // Helper function to format time without period
+            function formatTimeWithoutPeriod(timeStr) {
+                const [time, period] = timeStr.split(' ');
+                return time;
+            }
+
+            // Process consecutive times
             for (let i = 1; i < slot.times.length; i++) {
                 const currentTime = new Date(`2000/01/01 ${slot.times[i]}`);
                 const prevTime = new Date(`2000/01/01 ${slot.times[i-1]}`);
                 const diffMinutes = (currentTime - prevTime) / (1000 * 60);
 
-                // Check if times are consecutive (based on increment)
                 if (diffMinutes <= increment_minutes) {
                     currentBlock.end = slot.times[i];
                 } else {
-                    timeBlocks.push(`${currentBlock.start} - ${currentBlock.end} (${increment_minutes}min)`);
+                    // Calculate actual end time by adding increment_minutes
+                    const endTime = addMinutes(currentBlock.end, increment_minutes);
+                    timeBlocks.push(`${formatTimeWithoutPeriod(currentBlock.start)}-${formatTimeWithoutPeriod(endTime)}`);
+
                     currentBlock = {
                         start: slot.times[i],
                         end: slot.times[i]
@@ -173,7 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Add the last block
-            timeBlocks.push(`${currentBlock.start} - ${currentBlock.end} (${increment_minutes}min)`);
+            const finalEndTime = addMinutes(currentBlock.end, increment_minutes);
+            timeBlocks.push(`${formatTimeWithoutPeriod(currentBlock.start)}-${formatTimeWithoutPeriod(finalEndTime)}`);
 
             // Return formatted date with time blocks
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
