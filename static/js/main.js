@@ -78,6 +78,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return availability.map(slot => {
             if (!slot.times || slot.times.length === 0) return '';
 
+            // Format date in shorter form
+            const dateObj = new Date(slot.date.replace(/(\d+)(st|nd|rd|th)/, '$1'));
+            const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric'
+            });
+
             // Convert times to Date objects for comparison
             const timeObjects = slot.times.map(time => {
                 const [hourMin, period] = time.split(' ');
@@ -124,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `${start}-${end} ${period}`;
             });
 
-            return `[${slot.date}] ${timeRanges.join(', ')}`;
+            return `${formattedDate}: ${timeRanges.join(', ')}`;
         }).filter(Boolean).join('\n');
     }
 });
