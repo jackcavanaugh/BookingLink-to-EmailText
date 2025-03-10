@@ -235,6 +235,8 @@ class CalendarScraper:
         """Fallback method to extract slots from HTML when selectors fail"""
         try:
             logger.debug("Attempting to extract slots directly from HTML")
+            logger.debug(f"Current URL: {self.driver.current_url}")
+            logger.debug(f"Page title: {self.driver.title}")
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -242,21 +244,33 @@ class CalendarScraper:
             available_slots = []
             
             # Look for elements that might contain dates
-            date_containers = soup.find_all(['div', 'button', 'td'], 
-                                           attrs={'class': lambda c: c and any(x in c for x in 
-                                                                             ['date', 'day', 'calendar'])
-                                                  if c else False})
+            logger.debug("Attempting to extract date containers from HTML")
+            # Simplify the lambda function to avoid syntax issues
+            def class_filter(class_str):
+                if not class_str:
+                    return False
+                return any(x in class_str for x in ['date', 'day', 'calendar'])
+                
+            date_containers = soup.find_all(['div', 'button', 'td'], attrs={'class': class_filter})
+            logger.debug(f"Found {len(date_containers)} potential date containers")
             
             # Extract text that looks like dates
-            for container in date_containers:
-                date_text = container.get_text().strip()
-                if date_text and len(date_text) > 1:  # Avoid empty or single-char results
-                    # Simple check if it might be a date
-                    if any(char.isdigit() for char in date_text):
-                        available_slots.append({
-                            'date': date_text,
-                            'times': ['Time information not available']
-                        })
+            for i, container in enumerate(date_containers):
+                try:
+                    date_text = container.get_text().strip()
+                    logger.debug(f"Container {i} text: '{date_text}'")
+                    
+                    if date_text and len(date_text) > 1:  # Avoid empty or single-char results
+                        # Simple check if it might be a date
+                        if any(char.isdigit() for char in date_text):
+                            logger.debug(f"Found potential date: {date_text}")
+                            available_slots.append({
+                                'date': date_text,
+                                'times': ['Time information not available']
+                            })
+                except Exception as e:
+                    logger.error(f"Error processing container {i}: {str(e)}")
+                    continue
             
             if available_slots:
                 logger.debug(f"Extracted {len(available_slots)} potential dates")

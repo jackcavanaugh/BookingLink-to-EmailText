@@ -30,12 +30,30 @@ def is_valid_calendar_url(url):
 def index():
     return render_template('index.html')
 
+@app.route('/debug')
+def debug():
+    """Route for debugging application state"""
+    import sys
+    import platform
+    
+    debug_info = {
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'supported_domains': SUPPORTED_DOMAINS,
+        'environment': {k: v for k, v in os.environ.items() if not k.startswith('_') and k.isupper()},
+    }
+    
+    return jsonify(debug_info)
+
 @app.route('/scrape', methods=['POST'])
 def scrape():
     try:
+        logger.debug("Received scrape request")
         url = request.form.get('url', '').strip()
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
+        
+        logger.debug(f"Request parameters - URL: {url}, Start: {start_date}, End: {end_date}")
 
         if not url or not start_date or not end_date:
             return jsonify({
