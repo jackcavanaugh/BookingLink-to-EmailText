@@ -3,6 +3,7 @@ import logging
 from flask import Flask, render_template, request, jsonify
 from scraper import scrape_calendar_availability
 from urllib.parse import urlparse
+from selenium.common.exceptions import TimeoutException
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
