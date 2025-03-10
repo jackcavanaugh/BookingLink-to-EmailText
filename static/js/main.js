@@ -177,33 +177,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function formatTimeBlock(startTime, endTime, increment_minutes) {
-        // Debug input values
         console.log('Format Time Block Input:', {
             startTime,
             endTime,
             increment_minutes
         });
 
-        // Get start time components
-        const [startTimeOnly] = startTime.split(' ');
+        // Parse start and end times
+        const [startTimeStr, startPeriod] = startTime.split(' ');
+        const [endTimeStr, endPeriod] = endTime.split(' ');
 
-        // Get end time components with increment
-        const endDate = new Date(`2000/01/01 ${endTime}`);
+        // Parse hours and minutes
+        const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
+
+        // Convert end time to 24-hour format for calculation
+        let end24Hours = endHours;
+        if (endPeriod === 'PM' && endHours !== 12) end24Hours += 12;
+        if (endPeriod === 'AM' && endHours === 12) end24Hours = 0;
+
+        // Create date object for end time and add increment
+        const endDate = new Date(2000, 0, 1, end24Hours, endMinutes);
         endDate.setMinutes(endDate.getMinutes() + increment_minutes);
 
-        // Format end time in 12-hour format with period
-        let endHours = endDate.getHours();
-        const endPeriod = endHours >= 12 ? 'PM' : 'AM';
-        endHours = endHours % 12 || 12;
-        const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
-        const endTimeStr = `${endHours}:${endMinutes}`;
+        // Convert back to 12-hour format
+        let finalHours = endDate.getHours();
+        const finalPeriod = finalHours >= 12 ? 'PM' : 'AM';
+        finalHours = finalHours % 12 || 12;
+        const finalMinutes = endDate.getMinutes().toString().padStart(2, '0');
 
-        // Create final formatted string
-        const formattedBlock = `${startTimeOnly}-${endTimeStr} ${endPeriod}`;
+        // Create final formatted string with period
+        const formattedBlock = startTimeStr + '-' + finalHours + ':' + finalMinutes + ' ' + finalPeriod;
 
-        // Debug output value
         console.log('Formatted Output:', formattedBlock);
-
         return formattedBlock;
     }
 });
