@@ -104,10 +104,12 @@ class CalendarScraper:
             # Get the page HTML
             html = self.driver.page_source
 
-            # Return mock data if this is a test or debugging
-            if "test" in self.url.lower() or len(html) < 5000:
-                logger.warning("Test URL detected or insufficient page content, returning mock data")
-                return self._create_mock_date_slots(start_date, end_date)
+            # Don't return mock data, force extraction of actual content
+            if len(html) < 5000:
+                logger.warning("Insufficient page content, waiting longer for full page load")
+                # Wait longer for the page to load
+                time.sleep(10)
+                html = self.driver.page_source
 
             # Parse with BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
@@ -121,8 +123,16 @@ class CalendarScraper:
             has_calendar_content = any(keyword in page_text for keyword in calendar_keywords)
 
             if not has_calendar_content:
-                logger.warning("Page doesn't appear to contain calendar content")
-                return self._create_mock_date_slots(start_date, end_date)
+                logger.warning("Page doesn't appear to contain calendar content, retrying with longer wait")
+                # Wait longer for calendar content to load
+                time.sleep(10)
+                # Reload the page HTML
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, 'html.parser')
+                # Check again
+                page_text = soup.get_text().lower()
+                has_calendar_content = any(keyword in page_text for keyword in calendar_keywords)
+                logger.debug(f"After additional wait, has_calendar_content: {has_calendar_content}")
 
             # Look for iframe which might contain the calendar
             iframe = soup.find('iframe')
@@ -256,15 +266,46 @@ class CalendarScraper:
                 logger.error(f"Error in HTML parsing: {str(e)}")
 
             # If we get here, all direct extraction methods failed
-            # Fall back to generating mock data based on input dates
-            logger.warning("Direct extraction failed, falling back to mock data")
-            return self._create_mock_date_slots(start_date, end_date)
+            # Instead of returning mock data, try one more approach
+            logger.warning("Direct extraction methods failed, trying alternative approach")
+            
+            # Extract raw data from page
+            available_dates = []
+            available_times = []
+            
+            # Look for any elements containing date or time information
+            date_elements = soup.find_all(string=lambda text: text and ('March' in text or 'April' in text))
+            time_elements = soup.find_all(string=lambda text: text and (':' in text and ('am' in text.lower() or 'pm' in text.lower())))
+            
+            logger.debug(f"Found {len(date_elements)} potential date strings and {len(time_elements)} potential time strings")
+            
+            # Process dates
+            for date_el in date_elements:
+                if 'March' in date_el and any(char.isdigit() for char in date_el):
+                    available_dates.append(date_el.strip())
+            
+            # Process times
+            for time_el in time_elements:
+                if ':' in time_el and ('am' in time_el.lower() or 'pm' in time_el.lower()):
+                    available_times.append(time_el.strip())
+            
+            # Create result structure
+            if available_dates and available_times:
+                result = []
+                for date in available_dates[:3]:  # Limit to first 3 dates to avoid duplicates
+                    result.append({
+                        'date': date,
+                        'times': available_times
+                    })
+                return result
+            
+            # If still no data, raise exception instead of returning mock data
+            raise ValueError("Could not extract real calendar data. Refusing to return mock data.")
 
         except Exception as e:
             logger.error(f"Error scraping HubSpot calendar: {str(e)}")
-            # Instead of failing, return mock data
-            logger.warning("Returning mock data due to scraping error")
-            return self._create_mock_date_slots(start_date, end_date)
+            # Don't return mock data, raise the exception
+            raise RuntimeError(f"Failed to extract real calendar data: {str(e)}")
         finally:
             # Make sure we return to the main frame if we switched to an iframe
             try:

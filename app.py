@@ -95,7 +95,7 @@ def scrape():
             if result["error"]:
                 logger.error(f"Error during scraping: {result['error']}")
                 return jsonify({
-                    'error': f"Error: {result['error']}"
+                    'error': f"Error extracting real calendar data: {result['error']}"
                 }), 500
                 
             availability = result["availability"]
@@ -104,6 +104,12 @@ def scrape():
                 return jsonify({
                     'error': 'No available time slots found in the selected date range'
                 }), 404
+                
+            # Check if the data might be mock data
+            if len(availability) == 3 and all(slot.get('times') and len(slot.get('times')) == 5 and '9:00 AM' in slot.get('times', []) for slot in availability):
+                return jsonify({
+                    'error': 'Detected mock data pattern. Unable to extract real calendar data.'
+                }), 500
 
             # Validate availability format before returning
             if isinstance(availability, list):
