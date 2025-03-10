@@ -245,7 +245,7 @@ class CalendarScraper:
             date_containers = soup.find_all(['div', 'button', 'td'], 
                                            attrs={'class': lambda c: c and any(x in c for x in 
                                                                              ['date', 'day', 'calendar'])
-                                                 } if c else False)
+                                                  if c else False})
             
             # Extract text that looks like dates
             for container in date_containers:
