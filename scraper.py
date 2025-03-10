@@ -190,16 +190,37 @@ class CalendarScraper:
 
                             if is_target:
                                 logger.info(f"Found exact match for target date: {label}")
-                                target_found = True
 
-                                # Click date and wait for times
-                                self.driver.execute_script("arguments[0].click();", btn)
-                                logger.debug("Clicked matching date button")
-
-                                # Extract times
-                                time_buttons = WebDriverWait(self.driver, 5).until(
-                                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]'))
+                                # Check if the button is enabled and clickable
+                                is_disabled = (
+                                    btn.get_attribute('disabled') == 'true' or
+                                    btn.get_attribute('aria-disabled') == 'true' or
+                                    'disabled' in (btn.get_attribute('class') or '')
                                 )
+
+                                if is_disabled:
+                                    logger.warning(f"Date {target_month_day} is displayed but not available (disabled)")
+                                    target_found = True  # Mark as found but skip processing
+                                    break
+
+                                # Try to click the button
+                                try:
+                                    self.driver.execute_script("arguments[0].click();", btn)
+                                    logger.debug("Clicked matching date button")
+                                except Exception as click_error:
+                                    logger.warning(f"Date {target_month_day} is not clickable: {str(click_error)}")
+                                    target_found = True  # Mark as found but skip processing
+                                    break
+
+                                # Wait for time slots to appear
+                                try:
+                                    time_buttons = WebDriverWait(self.driver, 5).until(
+                                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]'))
+                                    )
+                                except TimeoutException:
+                                    logger.warning(f"No time slots appeared for {target_month_day} after clicking")
+                                    target_found = True  # Mark as found but skip processing
+                                    break
 
                                 # Get increment if not already determined
                                 if increment_minutes is None and len(time_buttons) >= 2:
@@ -223,15 +244,14 @@ class CalendarScraper:
                                         'timezone': timezone
                                     })
                                     logger.info(f"Added {len(times)} time slots for {target_month_day}")
-                                    break
-                                else:
-                                    logger.warning(f"No time slots available for {target_month_day}")
+                                target_found = True
+                                break
 
                         except Exception as e:
                             logger.error(f"Error processing button: {str(e)}")
 
                     if not target_found:
-                        logger.warning(f"Date {target_month_day} not available")
+                        logger.warning(f"Date {target_month_day} not found in calendar")
 
                 except Exception as e:
                     logger.error(f"Error processing date {current_date.strftime('%Y-%m-%d')}: {str(e)}")
