@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize timezone selector with select2
+    $(document).ready(function() {
+        $('#timezone').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Search for a timezone...',
+            allowClear: false
+        });
+    });
+    
     // Initialize date pickers
     const startDatePicker = flatpickr("#start_date", {
         dateFormat: "Y-m-d",
