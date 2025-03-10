@@ -89,11 +89,18 @@ pre {
 .numInputWrapper span.arrowDown {
     color: #ffffff !important;
     border-color: #ffffff transparent !important;
+    opacity: 1 !important;
+    transition: opacity 0.2s !important;
 }
 
 .numInputWrapper span.arrowUp:after,
 .numInputWrapper span.arrowDown:after {
     border-color: #ffffff transparent !important;
+    opacity: 1 !important;
+}
+
+.numInputWrapper:hover span {
+    opacity: 0.8 !important;
 }
 
 /* Style year input wrapper background */
