@@ -35,12 +35,42 @@ def debug():
     """Route for debugging application state"""
     import sys
     import platform
+    import glob
+    
+    # Check for saved HTML files
+    html_files = {}
+    for path in glob.glob('/tmp/hubspot_*.html'):
+        try:
+            with open(path, 'r') as f:
+                # Get file size and first 500 chars
+                content = f.read(500)
+                size = len(content)
+                if os.path.getsize(path) > 500:
+                    content += f"... (truncated, full size: {os.path.getsize(path)} bytes)"
+                html_files[path] = {
+                    'size': os.path.getsize(path),
+                    'preview': content
+                }
+        except Exception as e:
+            html_files[path] = {'error': str(e)}
+    
+    # Get last few lines from logging
+    last_logs = []
+    try:
+        import subprocess
+        result = subprocess.run(['tail', '-n', '50', '/tmp/app.log'], capture_output=True, text=True)
+        if result.returncode == 0:
+            last_logs = result.stdout.splitlines()
+    except:
+        last_logs = ["Couldn't retrieve logs"]
     
     debug_info = {
         'python_version': sys.version,
         'platform': platform.platform(),
         'supported_domains': SUPPORTED_DOMAINS,
         'environment': {k: v for k, v in os.environ.items() if not k.startswith('_') and k.isupper()},
+        'saved_html_files': html_files,
+        'last_logs': last_logs
     }
     
     return jsonify(debug_info)

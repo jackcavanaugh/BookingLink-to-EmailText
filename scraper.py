@@ -70,16 +70,36 @@ class CalendarScraper:
 
         try:
             logger.debug(f"Loading HubSpot calendar page: {self.url}")
+            logger.debug(f"Start date: {start_date}, End date: {end_date}")
             self.driver.get(self.url)
 
             # Set a longer page load timeout
             self.driver.set_page_load_timeout(30)
+            
+            # Log browser console messages if possible
+            try:
+                console_logs = self.driver.get_log('browser')
+                logger.debug(f"Browser console logs: {console_logs}")
+            except Exception as e:
+                logger.debug(f"Unable to get browser logs: {str(e)}")
 
             # Wait for page to load
             logger.debug("Waiting for the page to fully load...")
-            WebDriverWait(self.driver, 20).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
+            try:
+                WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+                logger.debug("Body element found")
+            except Exception as e:
+                logger.error(f"Error waiting for body element: {str(e)}")
+                
+            # Log document readyState
+            ready_state = self.driver.execute_script("return document.readyState")
+            logger.debug(f"Document readyState: {ready_state}")
+            
+            # Check if page has loaded with content
+            page_length = self.driver.execute_script("return document.documentElement.outerHTML.length")
+            logger.debug(f"Page HTML length: {page_length} characters")
 
             # Log debugging info
             logger.debug(f"Page title: {self.driver.title}")
@@ -99,10 +119,50 @@ class CalendarScraper:
 
             # Give the page a bit more time to load JavaScript content
             import time
+            logger.debug("Waiting 5 seconds for JavaScript to initialize...")
             time.sleep(5)
+            
+            # Check for AJAX requests that might still be running
+            loading_indicators = self.driver.find_elements(By.CSS_SELECTOR, '[class*="loading"], [class*="spinner"]')
+            if loading_indicators:
+                logger.debug(f"Found {len(loading_indicators)} loading indicators, waiting 5 more seconds...")
+                time.sleep(5)
 
             # Get the page HTML
             html = self.driver.page_source
+            
+            # Log DOM structure 
+            try:
+                # Get top-level DOM structure (first two levels)
+                dom_structure = self.driver.execute_script("""
+                    let result = '';
+                    function getNodeSummary(node, level) {
+                        if (!node) return '';
+                        let padding = '  '.repeat(level);
+                        let summary = padding + node.nodeName;
+                        if (node.id) summary += ' #' + node.id;
+                        if (node.className) summary += ' .' + node.className.replace(/ /g, '.');
+                        return summary + '\\n';
+                    }
+
+                    function getChildren(node, level, maxLevel) {
+                        if (level > maxLevel) return '';
+                        let result = '';
+                        for (let i = 0; i < node.children.length; i++) {
+                            const child = node.children[i];
+                            result += getNodeSummary(child, level);
+                            if (level < maxLevel) {
+                                result += getChildren(child, level + 1, maxLevel);
+                            }
+                        }
+                        return result;
+                    }
+
+                    return getChildren(document.body, 1, 2);
+                """)
+                logger.debug(f"DOM Structure (top 2 levels):\n{dom_structure}")
+            except Exception as e:
+                logger.error(f"Error getting DOM structure: {str(e)}")
 
             # Don't return mock data, force extraction of actual content
             if len(html) < 5000:
@@ -114,8 +174,24 @@ class CalendarScraper:
             # Parse with BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
 
+            # Save the full HTML for debugging
+            try:
+                with open('/tmp/hubspot_page.html', 'w') as f:
+                    f.write(html)
+                logger.debug("Saved full HTML to /tmp/hubspot_page.html")
+            except Exception as e:
+                logger.error(f"Failed to save full HTML: {str(e)}")
+                
             # Log first 1000 chars for debugging
-            logger.debug(f"HTML snippet: {html[:1000]}...")
+            logger.debug(f"HTML snippet (first 1000 chars): {html[:1000]}...")
+            
+            # Count meaningful tags to see if we have real content
+            calendar_tags = ['calendar', 'date', 'time', 'slot', 'appointment', 'schedule']
+            tag_counts = {}
+            for tag in calendar_tags:
+                tag_counts[tag] = len(soup.find_all(lambda tag: tag.name and tag.get('class') and 
+                                                   any(cls and tag in cls.lower() for cls in tag.get('class'))))
+            logger.debug(f"Calendar-related tag counts: {tag_counts}")
 
             # Test if the page contains calendar-related content
             calendar_keywords = ['calendar', 'schedule', 'appointment', 'booking', 'meeting']
@@ -134,6 +210,19 @@ class CalendarScraper:
                 has_calendar_content = any(keyword in page_text for keyword in calendar_keywords)
                 logger.debug(f"After additional wait, has_calendar_content: {has_calendar_content}")
 
+            # Check for all iframes which might contain the calendar
+            iframes = self.driver.find_elements(By.TAG_NAME, 'iframe')
+            logger.debug(f"Found {len(iframes)} iframes on the page")
+            
+            for i, iframe in enumerate(iframes):
+                try:
+                    iframe_src = iframe.get_attribute('src')
+                    iframe_id = iframe.get_attribute('id')
+                    iframe_class = iframe.get_attribute('class')
+                    logger.debug(f"Iframe {i}: src='{iframe_src}', id='{iframe_id}', class='{iframe_class}'")
+                except:
+                    logger.debug(f"Couldn't get attributes for iframe {i}")
+            
             # Look for iframe which might contain the calendar
             iframe = soup.find('iframe')
             if iframe and iframe.get('src'):
@@ -146,9 +235,49 @@ class CalendarScraper:
                     # Wait for iframe content to load
                     time.sleep(2)
                     html = self.driver.page_source
+                    logger.debug(f"Iframe HTML length: {len(html)}")
                     soup = BeautifulSoup(html, 'html.parser')
+                    
+                    # Save iframe HTML for debugging
+                    try:
+                        with open('/tmp/hubspot_iframe.html', 'w') as f:
+                            f.write(html)
+                        logger.debug("Saved iframe HTML to /tmp/hubspot_iframe.html")
+                    except Exception as e:
+                        logger.error(f"Failed to save iframe HTML: {str(e)}")
+                        
                 except Exception as e:
                     logger.error(f"Error switching to iframe: {str(e)}")
+            
+            # Check for shadow DOM
+            try:
+                shadow_hosts = self.driver.execute_script("""
+                    return Array.from(document.querySelectorAll('*')).filter(el => el.shadowRoot).length;
+                """)
+                logger.debug(f"Found {shadow_hosts} shadow DOM hosts")
+                
+                if shadow_hosts > 0:
+                    # Try to extract content from shadow DOM
+                    shadow_content = self.driver.execute_script("""
+                        const hosts = Array.from(document.querySelectorAll('*')).filter(el => el.shadowRoot);
+                        let result = [];
+                        for (const host of hosts) {
+                            try {
+                                const root = host.shadowRoot;
+                                result.push({
+                                    tag: host.tagName,
+                                    id: host.id,
+                                    html: root.innerHTML.substring(0, 500) + '...'
+                                });
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+                        return result;
+                    """)
+                    logger.debug(f"Shadow DOM content snippets: {shadow_content}")
+            except Exception as e:
+                logger.error(f"Error checking for shadow DOM: {str(e)}")
 
             # Extract dates and times using HubSpot specific selectors
             # Structure for storing available slots by date
@@ -269,6 +398,44 @@ class CalendarScraper:
             # Instead of returning mock data, try one more approach
             logger.warning("Direct extraction methods failed, trying alternative approach")
             
+            # Dump all interactive elements for analysis
+            logger.debug("*** DUMPING ALL INTERACTIVE ELEMENTS ***")
+            try:
+                buttons = self.driver.find_elements(By.TAG_NAME, 'button')
+                logger.debug(f"Found {len(buttons)} buttons")
+                for i, btn in enumerate(buttons[:20]):  # Limit to first 20 to avoid huge logs
+                    try:
+                        btn_text = btn.text.strip()
+                        btn_html = btn.get_attribute('outerHTML')
+                        logger.debug(f"Button {i}: text='{btn_text}', HTML={btn_html[:100]}")
+                    except:
+                        pass
+                        
+                inputs = self.driver.find_elements(By.TAG_NAME, 'input')
+                logger.debug(f"Found {len(inputs)} input fields")
+                for i, inp in enumerate(inputs[:10]):
+                    try:
+                        inp_type = inp.get_attribute('type')
+                        inp_id = inp.get_attribute('id')
+                        inp_name = inp.get_attribute('name')
+                        logger.debug(f"Input {i}: type='{inp_type}', id='{inp_id}', name='{inp_name}'")
+                    except:
+                        pass
+                
+                # Look for HubSpot specific elements
+                hubspot_elements = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id*="date"], [data-test-id*="time"], [class*="calendar"], [class*="hubspot"]')
+                logger.debug(f"Found {len(hubspot_elements)} HubSpot-specific elements")
+                for i, el in enumerate(hubspot_elements[:20]):
+                    try:
+                        el_tag = el.tag_name
+                        el_text = el.text.strip()
+                        el_html = el.get_attribute('outerHTML')
+                        logger.debug(f"HubSpot element {i}: tag='{el_tag}', text='{el_text}', HTML={el_html[:100]}")
+                    except:
+                        pass
+            except Exception as e:
+                logger.error(f"Error dumping interactive elements: {str(e)}")
+            
             # Extract raw data from page
             available_dates = []
             available_times = []
@@ -278,6 +445,14 @@ class CalendarScraper:
             time_elements = soup.find_all(string=lambda text: text and (':' in text and ('am' in text.lower() or 'pm' in text.lower())))
             
             logger.debug(f"Found {len(date_elements)} potential date strings and {len(time_elements)} potential time strings")
+            
+            # Log the first few date elements for debugging
+            for i, date_el in enumerate(date_elements[:10]):
+                logger.debug(f"Date element {i}: '{date_el}'")
+                
+            # Log the first few time elements for debugging
+            for i, time_el in enumerate(time_elements[:10]):
+                logger.debug(f"Time element {i}: '{time_el}'")
             
             # Process dates
             for date_el in date_elements:
@@ -297,6 +472,7 @@ class CalendarScraper:
                         'date': date,
                         'times': available_times
                     })
+                logger.debug(f"Created result with {len(result)} dates and {len(available_times)} times")
                 return result
             
             # If still no data, raise exception instead of returning mock data
