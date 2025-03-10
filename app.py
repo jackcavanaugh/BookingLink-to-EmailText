@@ -97,35 +97,27 @@ def scrape():
             }), 400
 
         try:
-            availability = scrape_calendar_availability(url, start_date, end_date, timezone)
+            result = scrape_calendar_availability(url, start_date, end_date, timezone)
+            availability = result.get('slots', [])
+            increment_minutes = result.get('increment_minutes')
 
             if not availability:
                 return jsonify({
                     'error': 'No available time slots found in the selected date range'
                 }), 404
 
-            # Check if the data might be mock data
-            if len(availability) == 3 and all(slot.get('times') and len(slot.get('times')) == 5 and '9:00 AM' in slot.get('times', []) for slot in availability):
-                return jsonify({
-                    'error': 'Detected mock data pattern. Unable to extract real calendar data.'
-                }), 500
+            # Include increment information and timezone in response
+            response_data = {
+                'success': True,
+                'availability': availability,
+                'increment_minutes': increment_minutes
+            }
 
-            # Validate availability format before returning
-            if isinstance(availability, list):
-                # Include timezone in response if available
-                response_data = {
-                    'success': True,
-                    'availability': availability,
-                }
-                # Add timezone disclaimer if no timezone info available
-                if not any(slot.get('timezone') for slot in availability):
-                    response_data['note'] = f'Times shown in {timezone}'
-                return jsonify(response_data)
-            else:
-                logger.error(f"Invalid availability format: {type(availability)}")
-                return jsonify({
-                    'error': 'The calendar data could not be properly formatted'
-                }), 500
+            # Add timezone note if needed
+            if not any(slot.get('timezone') for slot in availability):
+                response_data['note'] = f'Times shown in {timezone}'
+
+            return jsonify(response_data)
 
         except ValueError as e:
             logger.error(f"Validation error: {str(e)}")

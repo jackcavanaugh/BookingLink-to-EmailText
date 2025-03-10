@@ -99,6 +99,27 @@ class CalendarScraper:
             logger.error(f"Error in scraper: {str(e)}")
             raise
 
+    def _get_time_increment(self, time_slots):
+        """Calculate the increment between time slots in minutes."""
+        try:
+            if len(time_slots) < 2:
+                return None
+
+            # Convert first two times to datetime objects for comparison
+            time1 = time_slots[0].text.strip()
+            time2 = time_slots[1].text.strip()
+
+            # Parse times (assuming format like "5:45 pm")
+            t1 = datetime.strptime(time1.lower(), "%I:%M %p")
+            t2 = datetime.strptime(time2.lower(), "%I:%M %p")
+
+            # Calculate difference in minutes
+            diff = (t2 - t1).total_seconds() / 60
+            return int(diff)
+        except Exception as e:
+            logger.error(f"Error calculating time increment: {str(e)}")
+            return None
+
     def _scrape_hubspot(self, start_date, end_date, timezone='UTC'):
         if not self.driver:
             self.setup_driver()
@@ -113,6 +134,7 @@ class CalendarScraper:
 
             # Will store all available slots across dates
             all_available_slots = []
+            increment_minutes = None
 
             # Loop through each date in the range
             current_date = start_obj
@@ -179,6 +201,12 @@ class CalendarScraper:
                                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]'))
                                 )
 
+                                # Get increment if not already determined
+                                if increment_minutes is None and len(time_buttons) >= 2:
+                                    increment_minutes = self._get_time_increment(time_buttons)
+                                    if increment_minutes:
+                                        logger.info(f"Detected {increment_minutes}-minute increments between slots")
+
                                 times = []
                                 for time_btn in time_buttons:
                                     time_text = time_btn.text.strip()
@@ -216,7 +244,11 @@ class CalendarScraper:
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 
-            return all_available_slots
+            # Add increment information to the response
+            return {
+                'increment_minutes': increment_minutes,
+                'slots': all_available_slots
+            }
 
         except TimeoutException as e:
             logger.error(f"Timeout waiting for calendar elements: {str(e)}")

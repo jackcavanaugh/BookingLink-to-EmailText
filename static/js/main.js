@@ -38,19 +38,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Failed to fetch availability');
             }
 
-            // Display timezone info if available
-            if (data.availability && data.availability[0]?.timezone) {
-                timezoneInfo.textContent = `Times shown in ${data.availability[0].timezone}`;
-            } else if (data.note) {
-                timezoneInfo.textContent = data.note;
+            // Display timezone and increment info
+            let infoText = [];
+            if (data.increment_minutes) {
+                infoText.push(`Appointment length: ${data.increment_minutes} minutes`);
             }
+            if (data.availability && data.availability[0]?.timezone) {
+                infoText.push(`Times shown in ${data.availability[0].timezone}`);
+            } else if (data.note) {
+                infoText.push(data.note);
+            }
+            timezoneInfo.textContent = infoText.join(' • ');
 
             // Display results
             availabilityText.textContent = formatAvailability(data.availability);
             resultDiv.classList.remove('d-none');
         } catch (error) {
             errorDiv.textContent = error.message;
-            errorDiv.classList.remove('d-none');
+            error.classList.remove('d-none');
         } finally {
             spinner.classList.add('d-none');
             submitBtn.disabled = false;
