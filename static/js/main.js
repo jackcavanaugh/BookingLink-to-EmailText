@@ -51,11 +51,11 @@ document.addEventListener('DOMContentLoaded', function() {
             timezoneInfo.textContent = infoText.join(' • ');
 
             // Display results
-            availabilityText.textContent = formatAvailability(data.availability);
+            availabilityText.textContent = formatAvailability(data.availability, data.increment_minutes);
             resultDiv.classList.remove('d-none');
         } catch (error) {
             errorDiv.textContent = error.message;
-            error.classList.remove('d-none');
+            errorDiv.classList.remove('d-none');
         } finally {
             spinner.classList.add('d-none');
             submitBtn.disabled = false;
@@ -72,10 +72,59 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    function formatAvailability(availability) {
+    function formatAvailability(availability, increment_minutes) {
+        if (!availability || !increment_minutes) return '';
+
         return availability.map(slot => {
-            let text = `[${slot.date}] ${slot.times.join(', ')}`;
-            return text;
-        }).join('\n');
+            if (!slot.times || slot.times.length === 0) return '';
+
+            // Convert times to Date objects for comparison
+            const timeObjects = slot.times.map(time => {
+                const [hourMin, period] = time.split(' ');
+                const [hours, minutes] = hourMin.split(':');
+                const date = new Date();
+                let hour = parseInt(hours);
+                if (period.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+                if (period.toLowerCase() === 'am' && hour === 12) hour = 0;
+                date.setHours(hour, parseInt(minutes), 0, 0);
+                return date;
+            }).sort((a, b) => a - b);
+
+            // Group times into blocks
+            const blocks = [];
+            let currentBlock = [timeObjects[0]];
+
+            for (let i = 1; i < timeObjects.length; i++) {
+                const expectedNext = new Date(currentBlock[currentBlock.length - 1].getTime() + increment_minutes * 60000);
+                if (timeObjects[i].getTime() === expectedNext.getTime()) {
+                    currentBlock.push(timeObjects[i]);
+                } else {
+                    blocks.push(currentBlock);
+                    currentBlock = [timeObjects[i]];
+                }
+            }
+            blocks.push(currentBlock);
+
+            // Format each block as a range
+            const formatTime = (date) => {
+                let hours = date.getHours();
+                const minutes = date.getMinutes();
+                const period = hours >= 12 ? 'PM' : 'AM';
+                if (hours > 12) hours -= 12;
+                if (hours === 0) hours = 12;
+                return `${hours}:${minutes.toString().padStart(2, '0')}`;
+            };
+
+            const timeRanges = blocks.map(block => {
+                const start = formatTime(block[0]);
+                // Calculate end time by adding increment to the last time in block
+                const endTime = new Date(block[block.length - 1].getTime() + increment_minutes * 60000);
+                const end = formatTime(endTime);
+                const period = endTime.getHours() >= 12 ? 'PM' : 'AM';
+                return `${start}-${end} ${period}`;
+            });
+
+            return `[${slot.date}] ${timeRanges.join(', ')}`;
+        }).filter(Boolean).join('\n');
     }
 });
