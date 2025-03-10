@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
         monthSelectorType: "static",
         showMonths: 1,
         static: true,
+        yearArrow: false,
         onChange: function(selectedDates, dateStr) {
             if (selectedDates[0]) {
                 // Calculate max end date (2 weeks from start)
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         monthSelectorType: "static",
         showMonths: 1,
         static: true,
+        yearArrow: false,
         disable: [
             function(date) {
                 if (!startDatePicker.selectedDates[0]) return true;
