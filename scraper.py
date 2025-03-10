@@ -75,7 +75,7 @@ class CalendarScraper:
 
             # Set a longer page load timeout
             self.driver.set_page_load_timeout(30)
-            
+
             # Log browser console messages if possible
             try:
                 console_logs = self.driver.get_log('browser')
@@ -92,11 +92,11 @@ class CalendarScraper:
                 logger.debug("Body element found")
             except Exception as e:
                 logger.error(f"Error waiting for body element: {str(e)}")
-                
+
             # Log document readyState
             ready_state = self.driver.execute_script("return document.readyState")
             logger.debug(f"Document readyState: {ready_state}")
-            
+
             # Check if page has loaded with content
             page_length = self.driver.execute_script("return document.documentElement.outerHTML.length")
             logger.debug(f"Page HTML length: {page_length} characters")
@@ -121,7 +121,7 @@ class CalendarScraper:
             import time
             logger.debug("Waiting 5 seconds for JavaScript to initialize...")
             time.sleep(5)
-            
+
             # Check for AJAX requests that might still be running
             loading_indicators = self.driver.find_elements(By.CSS_SELECTOR, '[class*="loading"], [class*="spinner"]')
             if loading_indicators:
@@ -130,7 +130,7 @@ class CalendarScraper:
 
             # Get the page HTML
             html = self.driver.page_source
-            
+
             # Log DOM structure 
             try:
                 # Get top-level DOM structure (first two levels)
@@ -181,10 +181,10 @@ class CalendarScraper:
                 logger.debug("Saved full HTML to /tmp/hubspot_page.html")
             except Exception as e:
                 logger.error(f"Failed to save full HTML: {str(e)}")
-                
+
             # Log first 1000 chars for debugging
             logger.debug(f"HTML snippet (first 1000 chars): {html[:1000]}...")
-            
+
             # Count meaningful tags to see if we have real content
             calendar_tags = ['calendar', 'date', 'time', 'slot', 'appointment', 'schedule']
             tag_counts = {}
@@ -213,7 +213,7 @@ class CalendarScraper:
             # Check for all iframes which might contain the calendar
             iframes = self.driver.find_elements(By.TAG_NAME, 'iframe')
             logger.debug(f"Found {len(iframes)} iframes on the page")
-            
+
             for i, iframe in enumerate(iframes):
                 try:
                     iframe_src = iframe.get_attribute('src')
@@ -222,7 +222,7 @@ class CalendarScraper:
                     logger.debug(f"Iframe {i}: src='{iframe_src}', id='{iframe_id}', class='{iframe_class}'")
                 except:
                     logger.debug(f"Couldn't get attributes for iframe {i}")
-            
+
             # Look for iframe which might contain the calendar
             iframe = soup.find('iframe')
             if iframe and iframe.get('src'):
@@ -237,7 +237,7 @@ class CalendarScraper:
                     html = self.driver.page_source
                     logger.debug(f"Iframe HTML length: {len(html)}")
                     soup = BeautifulSoup(html, 'html.parser')
-                    
+
                     # Save iframe HTML for debugging
                     try:
                         with open('/tmp/hubspot_iframe.html', 'w') as f:
@@ -245,17 +245,17 @@ class CalendarScraper:
                         logger.debug("Saved iframe HTML to /tmp/hubspot_iframe.html")
                     except Exception as e:
                         logger.error(f"Failed to save iframe HTML: {str(e)}")
-                        
+
                 except Exception as e:
                     logger.error(f"Error switching to iframe: {str(e)}")
-            
+
             # Check for shadow DOM
             try:
                 shadow_hosts = self.driver.execute_script("""
                     return Array.from(document.querySelectorAll('*')).filter(el => el.shadowRoot).length;
                 """)
                 logger.debug(f"Found {shadow_hosts} shadow DOM hosts")
-                
+
                 if shadow_hosts > 0:
                     # Try to extract content from shadow DOM
                     shadow_content = self.driver.execute_script("""
@@ -350,8 +350,8 @@ class CalendarScraper:
 
             # Second attempt: Parse directly from HTML with BeautifulSoup
             try:
-                # Look for dates in the calendar
-                date_elements = soup.select('[data-test-id="available-date"], [aria-label*="March"], [class*="date-picker-btn"][class*="valid"]')
+                # Look for dates in the calendar - be more specific with selectors
+                date_elements = soup.select('button[data-test-id="available-date"], button[aria-label*="March"], button[class*="date-picker-btn"][class*="valid"]')
                 logger.debug(f"Found {len(date_elements)} potential date elements in HTML")
 
                 # Time elements
@@ -397,7 +397,7 @@ class CalendarScraper:
             # If we get here, all direct extraction methods failed
             # Instead of returning mock data, try one more approach
             logger.warning("Direct extraction methods failed, trying alternative approach")
-            
+
             # Dump all interactive elements for analysis
             logger.debug("*** DUMPING ALL INTERACTIVE ELEMENTS ***")
             try:
@@ -410,7 +410,7 @@ class CalendarScraper:
                         logger.debug(f"Button {i}: text='{btn_text}', HTML={btn_html[:100]}")
                     except:
                         pass
-                        
+
                 inputs = self.driver.find_elements(By.TAG_NAME, 'input')
                 logger.debug(f"Found {len(inputs)} input fields")
                 for i, inp in enumerate(inputs[:10]):
@@ -421,7 +421,7 @@ class CalendarScraper:
                         logger.debug(f"Input {i}: type='{inp_type}', id='{inp_id}', name='{inp_name}'")
                     except:
                         pass
-                
+
                 # Look for HubSpot specific elements
                 hubspot_elements = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id*="date"], [data-test-id*="time"], [class*="calendar"], [class*="hubspot"]')
                 logger.debug(f"Found {len(hubspot_elements)} HubSpot-specific elements")
@@ -435,35 +435,35 @@ class CalendarScraper:
                         pass
             except Exception as e:
                 logger.error(f"Error dumping interactive elements: {str(e)}")
-            
+
             # Extract raw data from page
             available_dates = []
             available_times = []
-            
+
             # Look for any elements containing date or time information
             date_elements = soup.find_all(string=lambda text: text and ('March' in text or 'April' in text))
             time_elements = soup.find_all(string=lambda text: text and (':' in text and ('am' in text.lower() or 'pm' in text.lower())))
-            
+
             logger.debug(f"Found {len(date_elements)} potential date strings and {len(time_elements)} potential time strings")
-            
+
             # Log the first few date elements for debugging
             for i, date_el in enumerate(date_elements[:10]):
                 logger.debug(f"Date element {i}: '{date_el}'")
-                
+
             # Log the first few time elements for debugging
             for i, time_el in enumerate(time_elements[:10]):
                 logger.debug(f"Time element {i}: '{time_el}'")
-            
+
             # Process dates
             for date_el in date_elements:
                 if 'March' in date_el and any(char.isdigit() for char in date_el):
                     available_dates.append(date_el.strip())
-            
+
             # Process times
             for time_el in time_elements:
                 if ':' in time_el and ('am' in time_el.lower() or 'pm' in time_el.lower()):
                     available_times.append(time_el.strip())
-            
+
             # Create result structure
             if available_dates and available_times:
                 result = []
@@ -474,7 +474,7 @@ class CalendarScraper:
                     })
                 logger.debug(f"Created result with {len(result)} dates and {len(available_times)} times")
                 return result
-            
+
             # If still no data, raise exception instead of returning mock data
             raise ValueError("Could not extract real calendar data. Refusing to return mock data.")
 
@@ -532,7 +532,9 @@ class CalendarScraper:
             def class_filter(class_str):
                 if not class_str:
                     return False
-                return any(x in class_str for x in ['date', 'day', 'calendar'])
+                if isinstance(class_str, str):
+                    return any(x in class_str for x in ['date', 'day', 'calendar'])
+                return False
 
             date_containers = soup.find_all(['div', 'button', 'td'], attrs={'class': class_filter})
             logger.debug(f"Found {len(date_containers)} potential date containers")
