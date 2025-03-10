@@ -155,26 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 end: slot.times[0]
             };
 
-            // Helper function to parse time and add minutes
-            function addMinutes(timeStr, minutes) {
-                const [time, period] = timeStr.split(' ');
-                const [hours, mins] = time.split(':').map(Number);
-                const date = new Date(2000, 0, 1, 
-                    period === 'PM' && hours !== 12 ? hours + 12 : hours === 12 && period === 'AM' ? 0 : hours, 
-                    mins);
-                date.setMinutes(date.getMinutes() + minutes);
-
-                let newHours = date.getHours();
-                const newMins = date.getMinutes();
-                const newPeriod = newHours >= 12 ? 'PM' : 'AM';
-                newHours = newHours % 12 || 12;
-
-                return {
-                    time: `${newHours}:${newMins.toString().padStart(2, '0')}`,
-                    period: newPeriod
-                };
-            }
-
             // Process consecutive times
             for (let i = 1; i < slot.times.length; i++) {
                 const currentTime = new Date(`2000/01/01 ${slot.times[i]}`);
@@ -184,10 +164,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (diffMinutes <= increment_minutes) {
                     currentBlock.end = slot.times[i];
                 } else {
-                    // Get the final end time with period
-                    const endTimeObj = addMinutes(currentBlock.end, increment_minutes);
-                    const startTime = currentBlock.start.split(' ')[0]; // Just the time part
-                    timeBlocks.push(`${startTime}-${endTimeObj.time} ${endTimeObj.period}`);
+                    // Format time block with final end time including period
+                    const endTimeComponents = currentBlock.end.split(' ');
+                    const startTime = currentBlock.start.split(' ')[0];
+                    const endTime = addMinutes(endTimeComponents[0], increment_minutes, endTimeComponents[1]);
+                    timeBlocks.push(`${startTime}-${endTime}`);
 
                     currentBlock = {
                         start: slot.times[i],
@@ -197,12 +178,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Add the last block
-            const finalEndTimeObj = addMinutes(currentBlock.end, increment_minutes);
-            const startTime = currentBlock.start.split(' ')[0]; // Just the time part
-            timeBlocks.push(`${startTime}-${finalEndTimeObj.time} ${finalEndTimeObj.period}`);
+            const endTimeComponents = currentBlock.end.split(' ');
+            const startTime = currentBlock.start.split(' ')[0];
+            const endTime = addMinutes(endTimeComponents[0], increment_minutes, endTimeComponents[1]);
+            timeBlocks.push(`${startTime}-${endTime}`);
 
             // Return formatted date with time blocks
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
         }).filter(Boolean).join('\n');
+    }
+
+    function addMinutes(time, minutes, period) {
+        const [hours, mins] = time.split(':').map(Number);
+        const date = new Date(2000, 0, 1, 
+            period === 'PM' && hours !== 12 ? hours + 12 : hours === 12 && period === 'AM' ? 0 : hours, 
+            mins);
+        date.setMinutes(date.getMinutes() + minutes);
+
+        let newHours = date.getHours();
+        const newMins = date.getMinutes();
+        const newPeriod = newHours >= 12 ? 'PM' : 'AM';
+        newHours = newHours % 12 || 12;
+
+        return `${newHours}:${newMins.toString().padStart(2, '0')} ${newPeriod}`;
     }
 });
