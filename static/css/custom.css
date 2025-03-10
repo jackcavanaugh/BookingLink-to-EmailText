@@ -24,9 +24,9 @@ pre {
 
 /* Flatpickr dark theme customization */
 .flatpickr-calendar {
-    background: var(--bs-gray-900);
-    border-color: var(--bs-gray-700);
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    background: var(--bs-gray-900) !important;
+    border-color: var(--bs-gray-700) !important;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3) !important;
 }
 
 .flatpickr-day {
@@ -36,8 +36,8 @@ pre {
 }
 
 .flatpickr-day.selected {
-    background: var(--bs-primary);
-    border-color: var(--bs-primary);
+    background: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
     color: white !important;
 }
 
@@ -46,12 +46,12 @@ pre {
 }
 
 /* Enhanced styling for disabled/unavailable dates */
-.flatpickr-day.disabled,
-.flatpickr-day.prevMonthDay.disabled,
-.flatpickr-day.nextMonthDay.disabled,
-.flatpickr-day.notAllowed,
-.flatpickr-day.notAllowed.prevMonthDay,
-.flatpickr-day.notAllowed.nextMonthDay {
+.flatpickr-calendar .flatpickr-day.disabled,
+.flatpickr-calendar .flatpickr-day.prevMonthDay.disabled,
+.flatpickr-calendar .flatpickr-day.nextMonthDay.disabled,
+.flatpickr-calendar .flatpickr-day.notAllowed,
+.flatpickr-calendar .flatpickr-day.notAllowed.prevMonthDay,
+.flatpickr-calendar .flatpickr-day.notAllowed.nextMonthDay {
     background-color: var(--bs-gray-800) !important;
     color: var(--bs-gray-600) !important;
     border-color: transparent !important;
@@ -60,9 +60,9 @@ pre {
     opacity: 0.35 !important;
 }
 
-.flatpickr-day.disabled:hover,
-.flatpickr-day.prevMonthDay.disabled:hover,
-.flatpickr-day.nextMonthDay.disabled:hover {
+.flatpickr-calendar .flatpickr-day.disabled:hover,
+.flatpickr-calendar .flatpickr-day.prevMonthDay.disabled:hover,
+.flatpickr-calendar .flatpickr-day.nextMonthDay.disabled:hover {
     background-color: var(--bs-gray-800) !important;
 }
 
