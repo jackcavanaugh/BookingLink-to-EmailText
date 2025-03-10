@@ -229,15 +229,7 @@ class CalendarScraper:
 
     def _format_times(self, times):
         return []
-
-def scrape_calendar_availability(url, start_date, end_date):
-    scraper = CalendarScraper(url)
-    try:
-        logger.info(f"Starting calendar scraping for {url}")
-        return scraper.scrape(start_date, end_date)
-    except Exception as e:
-        logger.error(f"Error in scraper: {str(e)}")
-        raise
+        
     def _extract_available_slots_from_html(self):
         """Fallback method to extract slots from HTML when selectors fail"""
         try:
@@ -275,3 +267,12 @@ def scrape_calendar_availability(url, start_date, end_date):
         except Exception as e:
             logger.error(f"Error in fallback extraction: {str(e)}")
             return [{'date': 'Error extracting dates', 'times': ['Error extracting times']}]
+
+def scrape_calendar_availability(url, start_date, end_date):
+    scraper = CalendarScraper(url)
+    try:
+        logger.info(f"Starting calendar scraping for {url}")
+        return scraper.scrape(start_date, end_date)
+    except Exception as e:
+        logger.error(f"Error in scraper: {str(e)}")
+        raise
