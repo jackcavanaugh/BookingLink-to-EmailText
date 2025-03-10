@@ -179,29 +179,32 @@ document.addEventListener('DOMContentLoaded', function() {
         // Extract components from start time
         const [startTimeOnly] = startTime.split(' ');
 
+        // Debug logs for inputs
+        console.log('formatTimeBlock inputs:', { startTime, endTime, increment_minutes });
+
         // Calculate end time with increment
         const [endTimeOnly, endPeriod] = calculateEndTime(endTime, increment_minutes);
-
-        console.log('End Period:', endPeriod); // Debug log
+        console.log('calculateEndTime results:', { endTimeOnly, endPeriod });
 
         // Format as "startTime-endTime period"
         const formattedBlock = `${startTimeOnly}-${endTimeOnly} ${endPeriod}`;
-        console.log('Formatted Block:', formattedBlock); // Debug log
+        console.log('Final formatted block:', formattedBlock);
 
         return formattedBlock;
     }
 
     function calculateEndTime(timeStr, increment) {
+        console.log('calculateEndTime input:', timeStr, increment);
+
         const [time, period] = timeStr.split(' ');
         const [hours, minutes] = time.split(':').map(Number);
-
-        console.log('Input Time:', timeStr); // Debug log
-        console.log('Parsed Period:', period); // Debug log
 
         // Convert to 24-hour format
         let hour24 = hours;
         if (period === 'PM' && hours !== 12) hour24 += 12;
         if (period === 'AM' && hours === 12) hour24 = 0;
+
+        console.log('24-hour format:', hour24);
 
         // Create date object and add increment
         const date = new Date(2000, 0, 1, hour24, minutes);
@@ -212,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const newPeriod = newHours >= 12 ? 'PM' : 'AM';
         newHours = newHours % 12 || 12;
 
-        console.log('Calculated Period:', newPeriod); // Debug log
+        console.log('Final calculated time:', { newHours, minutes: date.getMinutes(), newPeriod });
 
         return [`${newHours}:${date.getMinutes().toString().padStart(2, '0')}`, newPeriod];
     }
