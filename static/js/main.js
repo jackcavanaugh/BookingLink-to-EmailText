@@ -103,11 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Failed to fetch availability');
             }
 
-            // Display timezone and increment info
+            // Display timezone info
             let infoText = [];
-            if (data.increment_minutes) {
-                infoText.push(`Appointment length: ${data.increment_minutes} minutes`);
-            }
             if (data.availability && data.availability[0]?.timezone) {
                 infoText.push(`Times shown in ${data.availability[0].timezone}`);
             } else if (data.note) {
