@@ -1,3 +1,4 @@
+
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -267,6 +268,7 @@ class CalendarScraper:
         except Exception as e:
             logger.error(f"Error in fallback extraction: {str(e)}")
             return [{'date': 'Error extracting dates', 'times': ['Error extracting times']}]
+
 
 def scrape_calendar_availability(url, start_date, end_date):
     scraper = CalendarScraper(url)
