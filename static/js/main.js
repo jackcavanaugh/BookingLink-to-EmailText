@@ -36,14 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
         static: true,
         disable: [
             function(date) {
-                // If no start date is selected, disable all dates
                 if (!startDatePicker.selectedDates[0]) return true;
-
                 const startDate = startDatePicker.selectedDates[0];
                 const maxDate = new Date(startDate);
                 maxDate.setDate(maxDate.getDate() + 14);
-
-                // Disable if date is before start date or more than 2 weeks after
                 return date < startDate || date > maxDate;
             }
         ]
@@ -148,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 day: 'numeric'
             });
 
-            // Group consecutive times into blocks
+            // Group consecutive times
             const timeBlocks = [];
             let currentBlock = {
                 start: slot.times[0],
@@ -163,11 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (diffMinutes <= increment_minutes) {
                     currentBlock.end = slot.times[i];
                 } else {
-                    // Format the current block
-                    const [startTime] = currentBlock.start.split(' ');
-                    const [endTime, period] = addTimeIncrement(currentBlock.end, increment_minutes).split(' ');
-                    timeBlocks.push(`${startTime}-${endTime} ${period}`);
-
+                    // Add current block
+                    timeBlocks.push(formatTimeBlock(currentBlock.start, currentBlock.end, increment_minutes));
                     currentBlock = {
                         start: slot.times[i],
                         end: slot.times[i]
@@ -176,15 +169,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Add the last block
-            const [startTime] = currentBlock.start.split(' ');
-            const [endTime, period] = addTimeIncrement(currentBlock.end, increment_minutes).split(' ');
-            timeBlocks.push(`${startTime}-${endTime} ${period}`);
+            timeBlocks.push(formatTimeBlock(currentBlock.start, currentBlock.end, increment_minutes));
 
             return `${formattedDate}: ${timeBlocks.join(', ')}`;
         }).filter(Boolean).join('\n');
     }
 
-    function addTimeIncrement(timeStr, increment) {
+    function formatTimeBlock(startTime, endTime, increment_minutes) {
+        // Extract components from start time
+        const [startTimeOnly] = startTime.split(' ');
+
+        // Calculate end time with increment
+        const [endTimeOnly, endPeriod] = calculateEndTime(endTime, increment_minutes);
+
+        // Format as "startTime-endTime period"
+        return `${startTimeOnly}-${endTimeOnly} ${endPeriod}`;
+    }
+
+    function calculateEndTime(timeStr, increment) {
         const [time, period] = timeStr.split(' ');
         const [hours, minutes] = time.split(':').map(Number);
 
@@ -193,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (period === 'PM' && hours !== 12) hour24 += 12;
         if (period === 'AM' && hours === 12) hour24 = 0;
 
-        // Create date object and add minutes
+        // Create date object and add increment
         const date = new Date(2000, 0, 1, hour24, minutes);
         date.setMinutes(date.getMinutes() + increment);
 
@@ -202,6 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const newPeriod = newHours >= 12 ? 'PM' : 'AM';
         newHours = newHours % 12 || 12;
 
-        return `${newHours}:${date.getMinutes().toString().padStart(2, '0')} ${newPeriod}`;
+        return [`${newHours}:${date.getMinutes().toString().padStart(2, '0')}`, newPeriod];
     }
 });
