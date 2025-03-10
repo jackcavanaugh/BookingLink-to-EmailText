@@ -66,8 +66,40 @@ def scrape():
             }), 400
 
         try:
-            availability = scrape_calendar_availability(url, start_date, end_date)
-
+            # Set a timeout for the entire operation
+            import threading
+            import time
+            
+            result = {"availability": None, "error": None}
+            
+            def scrape_with_timeout():
+                try:
+                    result["availability"] = scrape_calendar_availability(url, start_date, end_date)
+                except Exception as e:
+                    result["error"] = str(e)
+            
+            # Start scraping in a separate thread
+            scrape_thread = threading.Thread(target=scrape_with_timeout)
+            scrape_thread.start()
+            
+            # Wait for the thread to complete with a timeout
+            scrape_thread.join(timeout=30)  # 30 second timeout
+            
+            if scrape_thread.is_alive():
+                # Timeout occurred
+                logger.error("Scraping operation timed out")
+                return jsonify({
+                    'error': 'The operation timed out. HubSpot calendars can be slow to respond.'
+                }), 504
+            
+            if result["error"]:
+                logger.error(f"Error during scraping: {result['error']}")
+                return jsonify({
+                    'error': f"Error: {result['error']}"
+                }), 500
+                
+            availability = result["availability"]
+            
             if not availability:
                 return jsonify({
                     'error': 'No available time slots found in the selected date range'
