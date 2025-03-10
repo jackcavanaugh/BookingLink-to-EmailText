@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const startDatePicker = flatpickr("#start_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
+        monthSelectorType: "static",
+        showMonths: 1,
+        static: true,
         onChange: function(selectedDates, dateStr) {
             if (selectedDates[0]) {
                 // Calculate max end date (2 weeks from start)
@@ -28,6 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const endDatePicker = flatpickr("#end_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
+        monthSelectorType: "static",
+        showMonths: 1,
+        static: true,
         disable: [
             function(date) {
                 // If no start date is selected, disable all dates
