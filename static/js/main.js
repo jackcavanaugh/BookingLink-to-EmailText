@@ -4,26 +4,22 @@ document.addEventListener('DOMContentLoaded', function() {
         dateFormat: "Y-m-d",
         minDate: "today",
         onChange: function(selectedDates, dateStr) {
-            // Calculate max end date (2 weeks from start)
-            const maxEndDate = new Date(selectedDates[0]);
-            maxEndDate.setDate(maxEndDate.getDate() + 14);
+            if (selectedDates[0]) {
+                // Calculate max end date (2 weeks from start)
+                const maxEndDate = new Date(selectedDates[0]);
+                maxEndDate.setDate(maxEndDate.getDate() + 14);
 
-            // Update end date constraints
-            endDatePicker.set('minDate', dateStr);
-            endDatePicker.set('maxDate', maxEndDate);
+                // Update end date picker configuration
+                endDatePicker.set('minDate', dateStr);
+                endDatePicker.set('maxDate', maxEndDate);
 
-            // If end date is outside the allowed range, update it
-            if (endDatePicker.selectedDates[0]) {
-                if (endDatePicker.selectedDates[0] < selectedDates[0]) {
-                    endDatePicker.setDate(dateStr);
-                } else if (endDatePicker.selectedDates[0] > maxEndDate) {
-                    errorDiv.textContent = 'Sorry: maximum 2 week span';
-                    errorDiv.classList.remove('d-none');
-                    setTimeout(() => {
+                // If end date is outside the allowed range, update it
+                if (endDatePicker.selectedDates[0]) {
+                    if (endDatePicker.selectedDates[0] < selectedDates[0]) {
+                        endDatePicker.setDate(dateStr);
+                    } else if (endDatePicker.selectedDates[0] > maxEndDate) {
                         endDatePicker.setDate(maxEndDate);
-                    }, 100);
-                } else {
-                    errorDiv.classList.add('d-none');
+                    }
                 }
             }
         }
@@ -32,22 +28,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const endDatePicker = flatpickr("#end_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
-        onChange: function(selectedDates) {
-            if (startDatePicker.selectedDates[0]) {
-                const maxEndDate = new Date(startDatePicker.selectedDates[0]);
-                maxEndDate.setDate(maxEndDate.getDate() + 14);
+        disable: [
+            function(date) {
+                // If no start date is selected, disable all dates
+                if (!startDatePicker.selectedDates[0]) return true;
 
-                if (selectedDates[0] > maxEndDate) {
-                    errorDiv.textContent = 'Sorry: maximum 2 week span';
-                    errorDiv.classList.remove('d-none');
-                    setTimeout(() => {
-                        endDatePicker.setDate(maxEndDate);
-                    }, 100);
-                } else {
-                    errorDiv.classList.add('d-none');
-                }
+                const startDate = startDatePicker.selectedDates[0];
+                const maxDate = new Date(startDate);
+                maxDate.setDate(maxDate.getDate() + 14);
+
+                // Disable if date is before start date or more than 2 weeks after
+                return date < startDate || date > maxDate;
             }
-        }
+        ]
     });
 
     const form = document.getElementById('scraperForm');
