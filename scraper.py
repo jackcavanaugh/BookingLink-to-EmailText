@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import requests
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,38 @@ class CalendarScraper:
                 logger.error(f"Error cleaning up driver: {str(e)}")
             finally:
                 self.driver = None
+
+    def _convert_time_to_timezone(self, time_str, target_timezone):
+        """Convert time from GMT to target timezone."""
+        try:
+            # Parse the time string (assuming it's in GMT)
+            # HubSpot time format is typically like "5:45 pm"
+            time_str = time_str.strip().lower()
+            is_pm = 'pm' in time_str
+            time_parts = time_str.replace('am', '').replace('pm', '').strip().split(':')
+            hour = int(time_parts[0])
+            minute = int(time_parts[1])
+
+            # Convert to 24-hour format if PM
+            if is_pm and hour != 12:
+                hour += 12
+            elif not is_pm and hour == 12:
+                hour = 0
+
+            # Create datetime object in GMT
+            today = datetime.now().date()
+            time_gmt = datetime.combine(today, datetime.min.time().replace(hour=hour, minute=minute))
+            time_gmt = time_gmt.replace(tzinfo=ZoneInfo('GMT'))
+
+            # Convert to target timezone
+            time_local = time_gmt.astimezone(ZoneInfo(target_timezone))
+
+            # Format in 12-hour clock
+            return time_local.strftime('%-I:%M %p')
+
+        except Exception as e:
+            logger.error(f"Error converting time {time_str} to {target_timezone}: {str(e)}")
+            return time_str  # Return original string if conversion fails
 
     def scrape(self, start_date, end_date, timezone='UTC'):
         try:
@@ -150,7 +183,7 @@ class CalendarScraper:
 
                             # Click date and wait for times
                             self.driver.execute_script("arguments[0].click();", btn)
-                            logger.info("Clicked matching date button")
+                            logger.debug("Clicked matching date button")
 
                             # Extract times
                             time_buttons = WebDriverWait(self.driver, 5).until(
@@ -161,8 +194,10 @@ class CalendarScraper:
                             for time_btn in time_buttons:
                                 time_text = time_btn.text.strip()
                                 if time_text:
-                                    times.append(time_text)
-                                    logger.info(f"Found time slot: {time_text}")
+                                    # Convert time from GMT to target timezone
+                                    converted_time = self._convert_time_to_timezone(time_text, timezone)
+                                    times.append(converted_time)
+                                    logger.info(f"Found time slot: {time_text} -> {converted_time} ({timezone})")
 
                             if times:
                                 return [{
