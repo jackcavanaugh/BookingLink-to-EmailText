@@ -36,7 +36,7 @@ def debug():
     import sys
     import platform
     import glob
-    
+
     # Check for saved HTML files
     html_files = {}
     for path in glob.glob('/tmp/hubspot_*.html'):
@@ -53,7 +53,7 @@ def debug():
                 }
         except Exception as e:
             html_files[path] = {'error': str(e)}
-    
+
     # Get last few lines from logging
     last_logs = []
     try:
@@ -63,7 +63,7 @@ def debug():
             last_logs = result.stdout.splitlines()
     except:
         last_logs = ["Couldn't retrieve logs"]
-    
+
     debug_info = {
         'python_version': sys.version,
         'platform': platform.platform(),
@@ -72,7 +72,7 @@ def debug():
         'saved_html_files': html_files,
         'last_logs': last_logs
     }
-    
+
     return jsonify(debug_info)
 
 @app.route('/scrape', methods=['POST'])
@@ -82,7 +82,7 @@ def scrape():
         url = request.form.get('url', '').strip()
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
-        
+
         logger.debug(f"Request parameters - URL: {url}, Start: {start_date}, End: {end_date}")
 
         if not url or not start_date or not end_date:
@@ -96,46 +96,13 @@ def scrape():
             }), 400
 
         try:
-            # Set a timeout for the entire operation
-            import threading
-            import time
-            
-            result = {"availability": None, "error": None}
-            
-            def scrape_with_timeout():
-                try:
-                    result["availability"] = scrape_calendar_availability(url, start_date, end_date)
-                except Exception as e:
-                    result["error"] = str(e)
-            
-            # Start scraping in a separate thread
-            scrape_thread = threading.Thread(target=scrape_with_timeout)
-            scrape_thread.daemon = True  # Make thread a daemon so it doesn't block app shutdown
-            scrape_thread.start()
-            
-            # Wait for the thread to complete with a longer timeout
-            scrape_thread.join(timeout=60)  # 60 second timeout for HubSpot calendars
-            
-            if scrape_thread.is_alive():
-                # Timeout occurred
-                logger.error("Scraping operation timed out")
-                return jsonify({
-                    'error': 'The operation timed out. The system will continue processing in the background.'
-                }), 504
-            
-            if result["error"]:
-                logger.error(f"Error during scraping: {result['error']}")
-                return jsonify({
-                    'error': f"Error extracting real calendar data: {result['error']}"
-                }), 500
-                
-            availability = result["availability"]
-            
+            availability = scrape_calendar_availability(url, start_date, end_date)
+
             if not availability:
                 return jsonify({
                     'error': 'No available time slots found in the selected date range'
                 }), 404
-                
+
             # Check if the data might be mock data
             if len(availability) == 3 and all(slot.get('times') and len(slot.get('times')) == 5 and '9:00 AM' in slot.get('times', []) for slot in availability):
                 return jsonify({
@@ -174,3 +141,6 @@ def scrape():
         return jsonify({
             'error': 'An unexpected error occurred. Please try again later.'
         }), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
