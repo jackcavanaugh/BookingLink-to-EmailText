@@ -182,13 +182,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate end time with increment
         const [endTimeOnly, endPeriod] = calculateEndTime(endTime, increment_minutes);
 
+        console.log('End Period:', endPeriod); // Debug log
+
         // Format as "startTime-endTime period"
-        return `${startTimeOnly}-${endTimeOnly} ${endPeriod}`;
+        const formattedBlock = `${startTimeOnly}-${endTimeOnly} ${endPeriod}`;
+        console.log('Formatted Block:', formattedBlock); // Debug log
+
+        return formattedBlock;
     }
 
     function calculateEndTime(timeStr, increment) {
         const [time, period] = timeStr.split(' ');
         const [hours, minutes] = time.split(':').map(Number);
+
+        console.log('Input Time:', timeStr); // Debug log
+        console.log('Parsed Period:', period); // Debug log
 
         // Convert to 24-hour format
         let hour24 = hours;
@@ -203,6 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let newHours = date.getHours();
         const newPeriod = newHours >= 12 ? 'PM' : 'AM';
         newHours = newHours % 12 || 12;
+
+        console.log('Calculated Period:', newPeriod); // Debug log
 
         return [`${newHours}:${date.getMinutes().toString().padStart(2, '0')}`, newPeriod];
     }
