@@ -111,21 +111,26 @@ def scrape():
 
             # Validate availability format before returning
             if isinstance(availability, list):
-                return jsonify({
+                # Include timezone in response if available
+                response_data = {
                     'success': True,
-                    'availability': availability
-                })
+                    'availability': availability,
+                }
+                # Add timezone disclaimer if no timezone info available
+                if not any(slot.get('timezone') for slot in availability):
+                    response_data['note'] = 'Times shown in calendar owner\'s timezone'
+                return jsonify(response_data)
             else:
                 logger.error(f"Invalid availability format: {type(availability)}")
                 return jsonify({
                     'error': 'The calendar data could not be properly formatted'
                 }), 500
 
-        except RuntimeError as e:
-            logger.error(f"Runtime error during scraping: {str(e)}")
+        except ValueError as e:
+            logger.error(f"Validation error: {str(e)}")
             return jsonify({
                 'error': str(e)
-            }), 500
+            }), 400
         except TimeoutException:
             return jsonify({
                 'error': 'The calendar page took too long to load. Please try again.'

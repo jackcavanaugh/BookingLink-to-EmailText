@@ -163,9 +163,20 @@ class CalendarScraper:
                                     logger.info(f"Found time slot: {time_text}")
 
                             if times:
+                                # Look for timezone information
+                                timezone_element = self.driver.find_elements(By.CSS_SELECTOR, '[class*="timezone"], [data-test-id*="timezone"]')
+                                timezone = None
+                                if timezone_element:
+                                    try:
+                                        timezone = timezone_element[0].text.strip()
+                                        logger.info(f"Found timezone: {timezone}")
+                                    except Exception as e:
+                                        logger.error(f"Error getting timezone: {str(e)}")
+
                                 return [{
                                     'date': label or target_month_day,
-                                    'times': times
+                                    'times': times,
+                                    'timezone': timezone
                                 }]
                             else:
                                 error_msg = f"The date {target_month_day} is available but has no time slots. Please try another date."
