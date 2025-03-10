@@ -1,6 +1,20 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize date pickers
-    flatpickr(".datepicker", {
+    const startDatePicker = flatpickr("#start_date", {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        onChange: function(selectedDates, dateStr) {
+            // Update end date min date when start date changes
+            endDatePicker.set('minDate', dateStr);
+
+            // If end date is before new start date, update it
+            if (endDatePicker.selectedDates[0] < selectedDates[0]) {
+                endDatePicker.setDate(dateStr);
+            }
+        }
+    });
+
+    const endDatePicker = flatpickr("#end_date", {
         dateFormat: "Y-m-d",
         minDate: "today"
     });
@@ -16,6 +30,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        // Validate dates
+        const startDate = new Date(form.start_date.value);
+        const endDate = new Date(form.end_date.value);
+
+        if (endDate < startDate) {
+            errorDiv.textContent = 'End Date cannot be earlier than Start Date';
+            errorDiv.classList.remove('d-none');
+            return;
+        }
 
         // Reset UI states
         resultDiv.classList.add('d-none');
