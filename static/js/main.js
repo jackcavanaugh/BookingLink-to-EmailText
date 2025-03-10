@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         static: true,
         disableYearOverlay: true,
         altFormat: "Y-m-d",
+        todayBtn: true,
         onChange: function(selectedDates, dateStr) {
             if (selectedDates[0]) {
                 // Calculate max end date (2 weeks from start)
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         static: true,
         disableYearOverlay: true,
         altFormat: "Y-m-d",
+        todayBtn: true,
         disable: [
             function(date) {
                 if (!startDatePicker.selectedDates[0]) return true;

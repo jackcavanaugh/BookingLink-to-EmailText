@@ -102,6 +102,22 @@ pre {
     background: transparent !important;
 }
 
+/* Today button styling */
+.flatpickr-today-button {
+    background: #0d6efd !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 5px 10px !important;
+    border-radius: 4px !important;
+    margin: 5px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+}
+
+.flatpickr-today-button:hover {
+    background: #0b5ed7 !important;
+}
+
 /* Error message styling */
 .alert-danger {
     background-color: var(--bs-danger);
