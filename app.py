@@ -110,16 +110,17 @@ def scrape():
             
             # Start scraping in a separate thread
             scrape_thread = threading.Thread(target=scrape_with_timeout)
+            scrape_thread.daemon = True  # Make thread a daemon so it doesn't block app shutdown
             scrape_thread.start()
             
-            # Wait for the thread to complete with a timeout
-            scrape_thread.join(timeout=30)  # 30 second timeout to prevent worker timeouts
+            # Wait for the thread to complete with a longer timeout
+            scrape_thread.join(timeout=60)  # 60 second timeout for HubSpot calendars
             
             if scrape_thread.is_alive():
                 # Timeout occurred
                 logger.error("Scraping operation timed out")
                 return jsonify({
-                    'error': 'The operation timed out. HubSpot calendars can be slow to respond.'
+                    'error': 'The operation timed out. The system will continue processing in the background.'
                 }), 504
             
             if result["error"]:

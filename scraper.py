@@ -28,6 +28,10 @@ class CalendarScraper:
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-images')  # Skip loading images for faster rendering
+        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
+        chrome_options.add_argument('--disable-infobars')
+        chrome_options.add_argument('--js-flags=--max_old_space_size=256')  # Limit memory usage
 
         # Set the binary location to the Nix store path
         chrome_options.binary_location = "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
@@ -71,7 +75,29 @@ class CalendarScraper:
         try:
             logger.debug(f"Loading HubSpot calendar page: {self.url}")
             logger.debug(f"Start date: {start_date}, End date: {end_date}")
-            self.driver.get(self.url)
+            
+            # Try to directly navigate to the specific date range if possible
+            # This helps with HubSpot calendars that support direct date specification
+            import urllib.parse
+            from datetime import datetime
+            
+            # Format dates in a format HubSpot might understand (MM-DD-YYYY)
+            try:
+                start_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                start_formatted = start_obj.strftime('%m-%d-%Y')
+                
+                # Try to construct a URL with date parameters
+                if '?' in self.url:
+                    direct_url = f"{self.url}&date={start_formatted}"
+                else:
+                    direct_url = f"{self.url}?date={start_formatted}"
+                    
+                logger.debug(f"Attempting to navigate directly to date: {direct_url}")
+                self.driver.get(direct_url)
+            except Exception as e:
+                logger.debug(f"Failed to navigate directly to date: {str(e)}")
+                # Fallback to regular URL
+                self.driver.get(self.url)
 
             # Set a longer page load timeout
             self.driver.set_page_load_timeout(30)
@@ -117,16 +143,16 @@ class CalendarScraper:
             # because HubSpot uses complex dynamic structures
             logger.debug("Extracting calendar information directly from page...")
 
-            # Give the page a bit more time to load JavaScript content
+            # Minimize wait times but still allow for JavaScript to initialize
             import time
-            logger.debug("Waiting 5 seconds for JavaScript to initialize...")
-            time.sleep(5)
+            logger.debug("Waiting 2 seconds for JavaScript to initialize...")
+            time.sleep(2)
 
             # Check for AJAX requests that might still be running
             loading_indicators = self.driver.find_elements(By.CSS_SELECTOR, '[class*="loading"], [class*="spinner"]')
             if loading_indicators:
-                logger.debug(f"Found {len(loading_indicators)} loading indicators, waiting 5 more seconds...")
-                time.sleep(5)
+                logger.debug(f"Found {len(loading_indicators)} loading indicators, waiting 2 more seconds...")
+                time.sleep(2)
 
             # Get the page HTML
             html = self.driver.page_source
@@ -287,9 +313,9 @@ class CalendarScraper:
 
             # First attempt: Look specifically for HubSpot calendar elements
             try:
-                # Wait longer for the HubSpot calendar to fully load
-                logger.debug("Waiting for HubSpot calendar to fully load (10 seconds)...")
-                time.sleep(10)
+                # Reduce wait time for HubSpot calendar 
+                logger.debug("Waiting for HubSpot calendar to load (3 seconds)...")
+                time.sleep(3)
 
                 # Find available date buttons with explicit wait
                 logger.debug("Looking for available date buttons...")
@@ -367,7 +393,7 @@ class CalendarScraper:
 
                                     # Use shorter timeout to prevent browser hanging
                                     logger.debug("Waiting for time slots to load...")
-                                    time.sleep(1.5)
+                                    time.sleep(0.8) # Reduce wait time between operations
 
                                     # Take screenshot after clicking date
                                     try:
