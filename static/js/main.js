@@ -148,7 +148,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 day: 'numeric'
             });
 
-            return `${formattedDate}: ${slot.times.join(', ')}`;
+            // Group consecutive times into blocks
+            const timeBlocks = [];
+            let currentBlock = {
+                start: slot.times[0],
+                end: slot.times[0]
+            };
+
+            for (let i = 1; i < slot.times.length; i++) {
+                const currentTime = new Date(`2000/01/01 ${slot.times[i]}`);
+                const prevTime = new Date(`2000/01/01 ${slot.times[i-1]}`);
+                const diffMinutes = (currentTime - prevTime) / (1000 * 60);
+
+                // Check if times are consecutive (based on increment)
+                if (diffMinutes <= 30) {  // Assuming 30-min increment max
+                    currentBlock.end = slot.times[i];
+                } else {
+                    timeBlocks.push(`${currentBlock.start} - ${currentBlock.end}`);
+                    currentBlock = {
+                        start: slot.times[i],
+                        end: slot.times[i]
+                    };
+                }
+            }
+
+            // Add the last block
+            timeBlocks.push(`${currentBlock.start} - ${currentBlock.end}`);
+
+            // Return formatted date with time blocks
+            return `${formattedDate}: ${timeBlocks.join(', ')}`;
         }).filter(Boolean).join('\n');
     }
 });
