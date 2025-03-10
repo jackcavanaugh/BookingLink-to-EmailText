@@ -212,12 +212,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Convert to 24-hour format for calculation
         let hours24 = endHours;
-        if (endPeriod === 'PM' && endHours !== 12) hours24 += 12;
-        if (endPeriod === 'AM' && endHours === 12) hours24 = 0;
+        // Normalize period to uppercase for consistent comparison
+        const normalizedPeriod = endPeriod.toUpperCase();
+        
+        if (normalizedPeriod === 'PM' && endHours !== 12) hours24 += 12;
+        if (normalizedPeriod === 'AM' && endHours === 12) hours24 = 0;
 
         console.log('24-hour conversion:', {
             originalHours: endHours,
             period: endPeriod,
+            normalizedPeriod: normalizedPeriod,
             convertedHours: hours24
         });
 
