@@ -44,6 +44,27 @@ pre {
     background: var(--bs-gray-700);
 }
 
+/* Style for disabled/unavailable dates */
+.flatpickr-day.disabled,
+.flatpickr-day.prevMonthDay.disabled,
+.flatpickr-day.nextMonthDay.disabled,
+.flatpickr-day.notAllowed,
+.flatpickr-day.notAllowed.prevMonthDay,
+.flatpickr-day.notAllowed.nextMonthDay {
+    color: var(--bs-gray-600) !important;
+    background: transparent;
+    border-color: transparent;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.flatpickr-day.disabled:hover,
+.flatpickr-day.prevMonthDay.disabled:hover,
+.flatpickr-day.nextMonthDay.disabled:hover {
+    background: transparent;
+}
+
 .flatpickr-weekday,
 .flatpickr-current-month {
     color: var(--bs-light) !important;
