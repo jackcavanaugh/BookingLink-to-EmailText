@@ -188,9 +188,11 @@ class CalendarScraper:
             # Count meaningful tags to see if we have real content
             calendar_tags = ['calendar', 'date', 'time', 'slot', 'appointment', 'schedule']
             tag_counts = {}
-            for tag in calendar_tags:
-                tag_counts[tag] = len(soup.find_all(lambda tag: tag.name and tag.get('class') and 
-                                                   any(cls and tag in cls.lower() for cls in tag.get('class'))))
+            for tag_name in calendar_tags:
+                # Fix the lambda function to properly check string in class
+                tag_counts[tag_name] = len(soup.find_all(lambda tag: tag.name and tag.get('class') and 
+                                                     any(cls and isinstance(cls, str) and tag_name in cls.lower() 
+                                                         for cls in tag.get('class', []))))
             logger.debug(f"Calendar-related tag counts: {tag_counts}")
 
             # Test if the page contains calendar-related content
@@ -285,16 +287,51 @@ class CalendarScraper:
 
             # First attempt: Look specifically for HubSpot calendar elements
             try:
-                # Find available date buttons
+                # Wait longer for the HubSpot calendar to fully load
+                logger.debug("Waiting for HubSpot calendar to fully load (10 seconds)...")
+                time.sleep(10)
+                
+                # Find available date buttons with explicit wait
+                logger.debug("Looking for available date buttons...")
+                try:
+                    WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-test-id="available-date"]'))
+                    )
+                    logger.debug("Found at least one available date button")
+                except TimeoutException:
+                    logger.warning("Timeout waiting for available date buttons")
+                
+                # Find all available date buttons
                 date_buttons = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id="available-date"]')
                 logger.debug(f"Found {len(date_buttons)} available date buttons")
+                
+                # Save screenshot after finding date buttons
+                try:
+                    self.driver.save_screenshot("/tmp/hubspot_dates_found.png")
+                    logger.debug("Saved screenshot with date buttons to /tmp/hubspot_dates_found.png")
+                except Exception as e:
+                    logger.error(f"Failed to save screenshot: {str(e)}")
 
                 if date_buttons:
-                    # Extract and process all available dates first
-                    for date_btn in date_buttons:
+                    # Log all date buttons first
+                    date_info = []
+                    for i, btn in enumerate(date_buttons):
                         try:
+                            label = btn.get_attribute('aria-label')
+                            text = btn.text.strip()
+                            date_info.append(f"Button {i}: label='{label}', text='{text}'")
+                        except Exception as e:
+                            logger.error(f"Error getting date button {i} info: {str(e)}")
+                    
+                    logger.debug(f"Available date buttons: {date_info}")
+                    
+                    # Extract and process all available dates first
+                    for i, date_btn in enumerate(date_buttons):
+                        try:
+                            # Get date information
                             date_label = date_btn.get_attribute('aria-label')
                             day_number = date_btn.text.strip()
+                            logger.debug(f"Processing date button {i}: label='{date_label}', day='{day_number}'")
 
                             # Format date from aria-label (e.g., "March 12th")
                             if date_label:
@@ -303,11 +340,15 @@ class CalendarScraper:
                                     # Remove "st", "nd", "rd", "th" from date string
                                     import re
                                     date_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_label)
+                                    logger.debug(f"Cleaned date string: '{date_clean}'")
+                                    
                                     # Try to parse the date
                                     date_obj = datetime.strptime(date_clean, "%B %d")
                                     # Add year
                                     full_date = f"{date_obj.strftime('%B')} {date_obj.day}, {end_date.split('-')[0]}"
-                                except:
+                                    logger.debug(f"Formatted date: '{full_date}'")
+                                except Exception as e:
+                                    logger.error(f"Error parsing date '{date_label}': {str(e)}")
                                     # Fallback if parsing fails
                                     full_date = date_label
 
@@ -318,21 +359,46 @@ class CalendarScraper:
                                 logger.debug(f"Found available date: {full_date}")
 
                                 # Click on date to see available times
-                                date_btn.click()
-                                time.sleep(2)  # Wait for times to load
+                                logger.debug(f"Clicking on date button for {full_date}")
+                                try:
+                                    # Use JavaScript click for better reliability
+                                    self.driver.execute_script("arguments[0].click();", date_btn)
+                                    logger.debug(f"Clicked on date button for {full_date}")
+                                    
+                                    # Wait for times to load - longer wait to ensure loading completes
+                                    logger.debug("Waiting for time slots to load...")
+                                    time.sleep(3)
+                                    
+                                    # Take screenshot after clicking date
+                                    try:
+                                        self.driver.save_screenshot(f"/tmp/hubspot_times_{i}.png")
+                                        logger.debug(f"Saved screenshot after clicking date {i} to /tmp/hubspot_times_{i}.png")
+                                    except Exception as e:
+                                        logger.error(f"Failed to save screenshot: {str(e)}")
+                                    
+                                    # Find available time slots
+                                    time_buttons = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]')
+                                    logger.debug(f"Found {len(time_buttons)} time buttons for {full_date}")
 
-                                # Find available time slots
-                                time_buttons = self.driver.find_elements(By.CSS_SELECTOR, '[data-test-id="time-picker-btn"]')
-                                logger.debug(f"Found {len(time_buttons)} time buttons for {full_date}")
-
-                                # Extract times
-                                for time_btn in time_buttons:
-                                    time_text = time_btn.text.strip()
-                                    if time_text:
-                                        available_slots_by_date[full_date].append(time_text)
-                                        logger.debug(f"Found time slot: {time_text} for {full_date}")
+                                    # Extract times
+                                    time_slots = []
+                                    for time_btn in time_buttons:
+                                        time_text = time_btn.text.strip()
+                                        if time_text:
+                                            time_slots.append(time_text)
+                                            logger.debug(f"Found time slot: {time_text} for {full_date}")
+                                    
+                                    # Check if we found times
+                                    if time_slots:
+                                        logger.debug(f"Adding {len(time_slots)} time slots for {full_date}")
+                                        available_slots_by_date[full_date] = time_slots
+                                    else:
+                                        logger.warning(f"No time slots found for {full_date}")
+                                        
+                                except Exception as e:
+                                    logger.error(f"Error clicking date or extracting times: {str(e)}")
                         except Exception as e:
-                            logger.error(f"Error processing date button: {str(e)}")
+                            logger.error(f"Error processing date button {i}: {str(e)}")
 
                     # Convert to the expected format
                     available_slots = []
@@ -440,9 +506,9 @@ class CalendarScraper:
             available_dates = []
             available_times = []
 
-            # Look for any elements containing date or time information
-            date_elements = soup.find_all(string=lambda text: text and ('March' in text or 'April' in text))
-            time_elements = soup.find_all(string=lambda text: text and (':' in text and ('am' in text.lower() or 'pm' in text.lower())))
+            # Look for any elements containing date or time information - handling both string and Tag types
+            date_elements = soup.find_all(string=lambda text: isinstance(text, str) and ('March' in text or 'April' in text))
+            time_elements = soup.find_all(string=lambda text: isinstance(text, str) and (':' in text and ('am' in text.lower() or 'pm' in text.lower())))
 
             logger.debug(f"Found {len(date_elements)} potential date strings and {len(time_elements)} potential time strings")
 
@@ -529,11 +595,13 @@ class CalendarScraper:
             # Look for elements that might contain dates
             logger.debug("Attempting to extract date containers from HTML")
             # Simplify the lambda function to avoid syntax issues
-            def class_filter(class_str):
-                if not class_str:
+            def class_filter(class_attr):
+                if not class_attr:
                     return False
-                if isinstance(class_str, str):
-                    return any(x in class_str for x in ['date', 'day', 'calendar'])
+                if isinstance(class_attr, str):
+                    return any(x in class_attr for x in ['date', 'day', 'calendar'])
+                elif isinstance(class_attr, list):
+                    return any(isinstance(cls, str) and any(x in cls for x in ['date', 'day', 'calendar']) for cls in class_attr)
                 return False
 
             date_containers = soup.find_all(['div', 'button', 'td'], attrs={'class': class_filter})
