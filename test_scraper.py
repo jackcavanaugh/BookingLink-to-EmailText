@@ -9,50 +9,57 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Test URL and dates
-url = "https://meetings.hubspot.com/jack-cavanaugh?uuid=969061ca-161a-425a-a665-d1ed067eb681"
-start_date = "2025-03-10"
-end_date = "2025-03-10"
+def test_calendar_scraping():
+    # Test URL and dates
+    url = "https://meetings.hubspot.com/jack-cavanaugh?uuid=969061ca-161a-425a-a665-d1ed067eb681"
+    start_date = "2025-03-10"
+    end_date = "2025-03-10"
+    timezone = "UTC"
 
-try:
     logger.info("Starting calendar scraping test")
     logger.info(f"URL: {url}")
     logger.info(f"Date range: {start_date} to {end_date}")
 
-    # Create scraper
-    scraper = CalendarScraper(url)
-
+    scraper = None
     try:
-        # Log the target date we're looking for
-        target_date = datetime.strptime(start_date, '%Y-%m-%d')
-        target_date_str = target_date.strftime('%B %-d')  # e.g., "March 10"
-        logger.info(f"\nLooking for target date: {target_date_str}")
+        scraper = CalendarScraper(url)
+        result = scraper.scrape(start_date, end_date, timezone)
 
-        # Attempt to scrape calendar data
-        logger.info("\nAttempting to scrape calendar data...")
-        available_slots = scraper.scrape(start_date, end_date)
+        if result and 'slots' in result:
+            slots = result['slots']
+            logger.info("\n=== Time Slot Analysis ===")
 
-        if available_slots:
-            logger.info("\nExtracted available slots:")
-            for slot in available_slots.get('slots', []):
-                logger.info("-" * 50)
-                logger.info(f"Date: {slot['date']}")
-                logger.info("Times:")
+            for slot in slots:
+                logger.info(f"\nDate: {slot['date']}")
+                logger.info("Available Times:")
+
                 for time in slot['times']:
-                    # Log each time slot with its components
-                    time_parts = time.split(' ')
-                    logger.info(f"  Raw time: {time}")
-                    logger.info(f"  Components: Time={time_parts[0]}, Period={time_parts[1] if len(time_parts) > 1 else 'MISSING'}")
-        else:
-            logger.warning("No available slots were returned")
+                    logger.info(f"\nRaw time string: '{time}'")
+                    components = time.split(' ')
 
-    except ValueError as ve:
-        logger.error(f"Validation error: {str(ve)}")
+                    if len(components) < 2:
+                        logger.error(f"Invalid time format - missing period: {time}")
+                        logger.info(f"Components found: {components}")
+                    else:
+                        time_part = components[0]
+                        period = components[1]
+                        logger.info(f"Time: {time_part}")
+                        logger.info(f"Period: {period}")
+
+                        # Verify time format
+                        try:
+                            hour, minute = map(int, time_part.split(':'))
+                            logger.info(f"Hour: {hour}, Minute: {minute}")
+                            if period.upper() not in ['AM', 'PM']:
+                                logger.error(f"Invalid period format: {period}")
+                        except ValueError as e:
+                            logger.error(f"Failed to parse time components: {e}")
+
     except Exception as e:
-        logger.error(f"Error during scraping: {str(e)}", exc_info=True)
+        logger.error(f"Error during testing: {str(e)}", exc_info=True)
+    finally:
+        if scraper and scraper.driver:
+            scraper.cleanup_driver()
 
-except Exception as e:
-    logger.error(f"Error setting up scraper: {str(e)}", exc_info=True)
-finally:
-    if 'scraper' in locals() and scraper.driver:
-        scraper.cleanup_driver()
+if __name__ == '__main__':
+    test_calendar_scraping()

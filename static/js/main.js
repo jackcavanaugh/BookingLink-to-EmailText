@@ -177,17 +177,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function formatTimeBlock(startTime, endTime, increment_minutes) {
-        // Split times into components
+        // Split start time into components
         const [startTimeStr, startPeriod] = startTime.split(' ');
         const [endTimeStr, endPeriod] = endTime.split(' ');
-
-        console.log('Time Block Components:', {
-            startTimeStr,
-            startPeriod,
-            endTimeStr,
-            endPeriod,
-            increment_minutes
-        });
 
         // Parse end time for increment calculation
         const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
@@ -196,12 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let hours24 = endHours;
         if (endPeriod === 'PM' && endHours !== 12) hours24 += 12;
         if (endPeriod === 'AM' && endHours === 12) hours24 = 0;
-
-        console.log('24-hour conversion:', {
-            originalHours: endHours,
-            period: endPeriod,
-            convertedHours: hours24
-        });
 
         // Create date and add increment
         const date = new Date(2000, 0, 1, hours24, endMinutes);
@@ -213,16 +199,10 @@ document.addEventListener('DOMContentLoaded', function() {
         finalHours = finalHours % 12 || 12;
         const finalMinutes = date.getMinutes().toString().padStart(2, '0');
 
-        console.log('Final time calculation:', {
-            finalHours,
-            finalMinutes,
-            finalPeriod
-        });
+        // Format final string with period
+        const finalTimeStr = `${finalHours}:${finalMinutes}`;
 
-        // Format the final string
-        const formattedTime = `${startTimeStr}-${finalHours}:${finalMinutes} ${finalPeriod}`;
-        console.log('Formatted output:', formattedTime);
-
-        return formattedTime;
+        // Determine which period to show (end period)
+        return `${startTimeStr}-${finalTimeStr} ${endPeriod}`;
     }
 });
