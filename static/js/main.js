@@ -1,13 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize timezone selector with select2
-    $(document).ready(function() {
-        $('#timezone').select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            placeholder: 'Search for a timezone...',
-            allowClear: false
+    // Ensure jQuery is loaded
+    if (typeof jQuery !== 'undefined') {
+        // Initialize timezone selector with select2
+        $(document).ready(function() {
+            $('#timezone').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Search for a timezone...',
+                allowClear: false
+            });
         });
-    });
+    } else {
+        console.error("jQuery is not loaded properly");
+    }
     
     // Initialize date pickers
     const startDatePicker = flatpickr("#start_date", {
