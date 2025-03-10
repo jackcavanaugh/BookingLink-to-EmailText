@@ -68,10 +68,45 @@ pre {
     color: var(--bs-light) !important;
 }
 
+/* Make month and year dropdowns consistent */
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month .numInputWrapper {
+    background: #1a1d20 !important;
+    border: 1px solid #343a40 !important;
+    border-radius: 4px !important;
+    padding: 2px 4px !important;
+}
+
+/* Style year input to match month dropdown */
+.flatpickr-current-month input.cur-year {
+    background: transparent !important;
+    color: #ffffff !important;
+    padding: 0 2px !important;
+}
+
+/* Style year arrows */
+.numInputWrapper span.arrowUp,
+.numInputWrapper span.arrowDown {
+    color: #ffffff !important;
+    border-color: #ffffff transparent !important;
+}
+
+.numInputWrapper span.arrowUp:after,
+.numInputWrapper span.arrowDown:after {
+    border-color: #ffffff transparent !important;
+}
+
+/* Month/year navigation arrows */
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
     fill: var(--bs-light) !important;
 }
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    fill: var(--bs-primary) !important;
+}
+
 
 /* Error message styling */
 .alert-danger {
