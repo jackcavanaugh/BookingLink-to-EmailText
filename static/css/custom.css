@@ -29,19 +29,22 @@ pre {
     box-shadow: 0 0 10px rgba(0,0,0,0.3) !important;
 }
 
-.flatpickr-day {
+/* Regular day styling */
+.flatpickr-calendar .flatpickr-day {
     color: var(--bs-light) !important;
     border: 1px solid transparent;
     background: transparent;
 }
 
-.flatpickr-day.selected {
+/* Selected day styling */
+.flatpickr-calendar .flatpickr-day.selected {
     background: var(--bs-primary) !important;
     border-color: var(--bs-primary) !important;
     color: white !important;
 }
 
-.flatpickr-day:hover:not(.disabled):not(.notAllowed) {
+/* Hover effect for available days only */
+.flatpickr-calendar .flatpickr-day:not(.disabled):not(.notAllowed):hover {
     background: var(--bs-gray-700);
 }
 
@@ -52,20 +55,22 @@ pre {
 .flatpickr-calendar .flatpickr-day.notAllowed,
 .flatpickr-calendar .flatpickr-day.notAllowed.prevMonthDay,
 .flatpickr-calendar .flatpickr-day.notAllowed.nextMonthDay {
-    background-color: var(--bs-gray-800) !important;
     color: var(--bs-gray-600) !important;
+    background-color: transparent !important;
     border-color: transparent !important;
     cursor: not-allowed !important;
     text-decoration: line-through !important;
     opacity: 0.35 !important;
 }
 
+/* Ensure disabled days don't change on hover */
 .flatpickr-calendar .flatpickr-day.disabled:hover,
 .flatpickr-calendar .flatpickr-day.prevMonthDay.disabled:hover,
 .flatpickr-calendar .flatpickr-day.nextMonthDay.disabled:hover {
-    background-color: var(--bs-gray-800) !important;
+    background-color: transparent !important;
 }
 
+/* Calendar headers and weekday names */
 .flatpickr-weekday,
 .flatpickr-current-month {
     color: var(--bs-light) !important;
