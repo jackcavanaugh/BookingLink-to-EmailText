@@ -55,10 +55,17 @@ def scrape():
                     'error': 'No available time slots found in the selected date range'
                 }), 404
 
-            return jsonify({
-                'success': True,
-                'availability': availability
-            })
+            # Validate availability format before returning
+            if isinstance(availability, list):
+                return jsonify({
+                    'success': True,
+                    'availability': availability
+                })
+            else:
+                logger.error(f"Invalid availability format: {type(availability)}")
+                return jsonify({
+                    'error': 'The calendar data could not be properly formatted'
+                }), 500
 
         except RuntimeError as e:
             logger.error(f"Runtime error during scraping: {str(e)}")

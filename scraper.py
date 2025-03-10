@@ -80,21 +80,55 @@ class CalendarScraper:
                     ".DatePickerV2__StyledTable",
                     ".meetings-schedule",
                     ".meetings-frame-wrapper",
-                    "[data-test-id='meetings-frame']"
+                    "[data-test-id='meetings-frame']",
+                    ".private-calendar",
+                    ".calendar-table",
+                    "div[role='calendar']",
+                    "table[role='grid']",
+                    "div[class*='calendar']"
                 ]
 
+                # First log the URL we're actually on after navigation
+                logger.debug(f"Current URL after navigation: {self.driver.current_url}")
+                
+                # Capture screenshot for debugging
+                try:
+                    screenshot_path = "/tmp/calendar_screenshot.png"
+                    self.driver.save_screenshot(screenshot_path)
+                    logger.debug(f"Screenshot saved to {screenshot_path}")
+                except Exception as e:
+                    logger.error(f"Failed to save screenshot: {str(e)}")
+                
                 for selector in selectors:
                     try:
-                        WebDriverWait(self.driver, 10).until(
+                        WebDriverWait(self.driver, 5).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                         )
                         logger.debug(f"Calendar loaded with selector: {selector}")
                         break
                     except TimeoutException:
+                        logger.debug(f"Selector not found: {selector}")
                         continue
                 else:
+                    # Try more generic selectors as fallback
+                    try:
+                        # Look for any button that might be a date selector
+                        date_buttons = self.driver.find_elements(By.TAG_NAME, "button")
+                        if date_buttons:
+                            logger.debug(f"Found {len(date_buttons)} buttons")
+                            # Click the first visible button that might be a date
+                            for btn in date_buttons:
+                                if btn.is_displayed() and btn.is_enabled():
+                                    btn.click()
+                                    logger.debug("Clicked a potential date button")
+                                    break
+                            return self._extract_available_slots_from_html()
+                    except Exception as e:
+                        logger.error(f"Error in fallback selection: {str(e)}")
+                    
                     # Log the page source for debugging
-                    logger.debug(f"Page source: {self.driver.page_source}")
+                    logger.debug(f"Page title: {self.driver.title}")
+                    logger.debug(f"Page source snippet: {self.driver.page_source[:1000]}...")
                     raise TimeoutException("Could not find any calendar elements")
 
             except TimeoutException:
@@ -204,3 +238,40 @@ def scrape_calendar_availability(url, start_date, end_date):
     except Exception as e:
         logger.error(f"Error in scraper: {str(e)}")
         raise
+    def _extract_available_slots_from_html(self):
+        """Fallback method to extract slots from HTML when selectors fail"""
+        try:
+            logger.debug("Attempting to extract slots directly from HTML")
+            html = self.driver.page_source
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Try to find dates and times using various patterns
+            available_slots = []
+            
+            # Look for elements that might contain dates
+            date_containers = soup.find_all(['div', 'button', 'td'], 
+                                           attrs={'class': lambda c: c and any(x in c for x in 
+                                                                             ['date', 'day', 'calendar'])
+                                                 } if c else False)
+            
+            # Extract text that looks like dates
+            for container in date_containers:
+                date_text = container.get_text().strip()
+                if date_text and len(date_text) > 1:  # Avoid empty or single-char results
+                    # Simple check if it might be a date
+                    if any(char.isdigit() for char in date_text):
+                        available_slots.append({
+                            'date': date_text,
+                            'times': ['Time information not available']
+                        })
+            
+            if available_slots:
+                logger.debug(f"Extracted {len(available_slots)} potential dates")
+                return available_slots
+            else:
+                logger.debug("No dates found in fallback extraction")
+                return [{'date': 'No dates found', 'times': ['No available times']}]
+        
+        except Exception as e:
+            logger.error(f"Error in fallback extraction: {str(e)}")
+            return [{'date': 'Error extracting dates', 'times': ['Error extracting times']}]
