@@ -17,9 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (endDatePicker.selectedDates[0] < selectedDates[0]) {
                     endDatePicker.setDate(dateStr);
                 } else if (endDatePicker.selectedDates[0] > maxEndDate) {
-                    endDatePicker.setDate(maxEndDate);
                     errorDiv.textContent = 'Sorry: maximum 2 week span';
                     errorDiv.classList.remove('d-none');
+                    setTimeout(() => {
+                        endDatePicker.setDate(maxEndDate);
+                    }, 100);
+                } else {
+                    errorDiv.classList.add('d-none');
                 }
             }
         }
@@ -36,7 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (selectedDates[0] > maxEndDate) {
                     errorDiv.textContent = 'Sorry: maximum 2 week span';
                     errorDiv.classList.remove('d-none');
-                    endDatePicker.setDate(maxEndDate);
+                    setTimeout(() => {
+                        endDatePicker.setDate(maxEndDate);
+                    }, 100);
                 } else {
                     errorDiv.classList.add('d-none');
                 }
