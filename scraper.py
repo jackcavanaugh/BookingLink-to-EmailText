@@ -8,9 +8,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 import requests
 from zoneinfo import ZoneInfo
+from driver_pool import get_driver_pool
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -19,45 +21,54 @@ class CalendarScraper:
         self.url = url
         self.domain = urlparse(url).netloc.lower()
         self.driver = None
+        self.driver_pool = get_driver_pool()
 
     def setup_driver(self):
-        logger.debug("Setting up Chrome driver...")
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--disable-extensions')
-        chrome_options.add_argument('--disable-images')
-        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
-        chrome_options.add_argument('--disable-infobars')
-        chrome_options.add_argument('--js-flags=--max_old_space_size=256')
-
-        chrome_options.binary_location = "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
-
+        """Get a driver from the pool."""
         try:
-            service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            logger.debug("Chrome driver setup successful")
+            self.driver = self.driver_pool.get_driver()
+            logger.debug("Successfully obtained driver from pool")
         except Exception as e:
-            logger.error(f"Failed to setup Chrome driver: {str(e)}")
+            logger.error(f"Failed to get driver from pool: {str(e)}")
             raise RuntimeError(f"Failed to initialize browser: {str(e)}")
 
     def cleanup_driver(self):
+        """Return the driver to the pool."""
         if self.driver:
             try:
-                self.driver.quit()
+                self.driver_pool.return_driver(self.driver)
+                self.driver = None
             except Exception as e:
-                logger.error(f"Error cleaning up driver: {str(e)}")
-            finally:
+                logger.error(f"Error returning driver to pool: {str(e)}")
+                # If we can't return it to the pool, try to clean it up
+                try:
+                    self.driver.quit()
+                except:
+                    pass
                 self.driver = None
 
-    def _convert_time_to_timezone(self, time_str, target_timezone):
-        """Convert time from GMT to target timezone."""
+    def _detect_source_timezone(self, time_str):
+        """Detect the source timezone from the calendar platform."""
+        if 'calendly.com' in self.domain:
+            return 'UTC'  # Calendly uses UTC
+        elif 'outlook.office365.com' in self.domain:
+            return 'UTC'  # Outlook uses UTC
+        elif 'meetings.hubspot.com' in self.domain:
+            return 'America/New_York'  # HubSpot uses Eastern Time
+        return 'UTC'  # Default to UTC if unknown
+
+    def _validate_timezone(self, timezone):
+        """Validate and normalize timezone string."""
         try:
-            # Parse the time string (assuming it's in GMT)
-            # HubSpot time format is typically like "5:45 pm"
+            return pytz.timezone(timezone).zone
+        except pytz.exceptions.UnknownTimeZoneError:
+            logger.warning(f"Invalid timezone {timezone}, defaulting to UTC")
+            return 'UTC'
+
+    def _convert_time_to_timezone(self, time_str, target_timezone):
+        """Convert time between timezones with proper handling of DST."""
+        try:
+            # Parse the time string
             time_str = time_str.strip().lower()
             is_pm = 'pm' in time_str
             time_parts = time_str.replace('am', '').replace('pm', '').strip().split(':')
@@ -70,13 +81,17 @@ class CalendarScraper:
             elif not is_pm and hour == 12:
                 hour = 0
 
-            # Create datetime object in GMT
+            # Get source timezone
+            source_timezone = self._detect_source_timezone(time_str)
+            target_timezone = self._validate_timezone(target_timezone)
+
+            # Create datetime object in source timezone
             today = datetime.now().date()
-            time_gmt = datetime.combine(today, datetime.min.time().replace(hour=hour, minute=minute))
-            time_gmt = time_gmt.replace(tzinfo=ZoneInfo('GMT'))
+            time_obj = datetime.combine(today, datetime.min.time().replace(hour=hour, minute=minute))
+            time_obj = time_obj.replace(tzinfo=pytz.timezone(source_timezone))
 
             # Convert to target timezone
-            time_local = time_gmt.astimezone(ZoneInfo(target_timezone))
+            time_local = time_obj.astimezone(pytz.timezone(target_timezone))
 
             # Format in 12-hour clock
             return time_local.strftime('%-I:%M %p')
@@ -86,7 +101,11 @@ class CalendarScraper:
             return time_str  # Return original string if conversion fails
 
     def scrape(self, start_date, end_date, timezone='UTC'):
+        """Scrape calendar availability with improved error handling."""
         try:
+            self.setup_driver()
+            timezone = self._validate_timezone(timezone)
+            
             if 'calendly.com' in self.domain:
                 return self._scrape_calendly(timezone)
             elif 'outlook.office365.com' in self.domain:
@@ -98,6 +117,19 @@ class CalendarScraper:
         except Exception as e:
             logger.error(f"Error in scraper: {str(e)}")
             raise
+        finally:
+            self.cleanup_driver()
+
+    def _handle_partial_success(self, results, errors):
+        """Handle partial success in scraping results."""
+        if not results and errors:
+            raise errors[0]  # If no results and we have errors, raise the first error
+        
+        return {
+            'slots': results,
+            'errors': [str(e) for e in errors] if errors else None,
+            'partial_success': bool(errors)
+        }
 
     def _get_time_increment(self, time_slots):
         """Calculate the increment between time slots in minutes."""

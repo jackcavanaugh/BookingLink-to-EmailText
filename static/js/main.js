@@ -14,21 +14,67 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("jQuery is not loaded properly");
     }
     
+    // URL field validation
+    const urlInput = document.getElementById('url');
+    urlInput.addEventListener('invalid', function(e) {
+        e.preventDefault();
+        this.classList.add('is-invalid');
+        this.placeholder = 'required field';
+    });
+
+    urlInput.addEventListener('input', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+            this.placeholder = 'https://meetings.hubspot.com/your-name/30min';
+        }
+    });
+    
+    // Set tomorrow as default date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    // Calculate max date (2 weeks from tomorrow)
+    const maxDate = new Date(tomorrow);
+    maxDate.setDate(maxDate.getDate() + 13); // 13 days after tomorrow = 2 weeks total
+    const maxDateStr = maxDate.toISOString().split('T')[0];
+    
     // Initialize date pickers
     const startDatePicker = flatpickr("#start_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
+        maxDate: maxDateStr,
+        defaultDate: tomorrowStr,
         monthSelectorType: "static",
         showMonths: 1,
         static: true,
         disableYearOverlay: true,
         altFormat: "Y-m-d",
         todayBtn: true,
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            // Add tooltip and class to disabled dates
+            if (dayElem.classList.contains('flatpickr-disabled')) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const currentDate = new Date(dObj);
+                currentDate.setHours(0, 0, 0, 0);
+                
+                if (currentDate < today) {
+                    dayElem.title = 'Date in the past';
+                    dayElem.setAttribute('aria-label', 'past date');
+                    dayElem.classList.add('disabled-past');
+                } else {
+                    dayElem.title = 'Date outside 2-week range';
+                    dayElem.setAttribute('aria-label', 'future date');
+                    dayElem.classList.add('disabled-future');
+                }
+            }
+        },
         onChange: function(selectedDates, dateStr) {
             if (selectedDates[0]) {
                 // Calculate max end date (2 weeks from start)
                 const maxEndDate = new Date(selectedDates[0]);
-                maxEndDate.setDate(maxEndDate.getDate() + 14);
+                maxEndDate.setDate(maxEndDate.getDate() + 13); // 13 days after start = 2 weeks total
 
                 // Update end date picker configuration
                 endDatePicker.set('minDate', dateStr);
@@ -48,19 +94,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const endDatePicker = flatpickr("#end_date", {
         dateFormat: "Y-m-d",
-        minDate: "today",
+        minDate: tomorrowStr,
+        maxDate: maxDateStr,
+        defaultDate: tomorrowStr,
         monthSelectorType: "static",
         showMonths: 1,
         static: true,
         disableYearOverlay: true,
         altFormat: "Y-m-d",
         todayBtn: true,
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            // Add tooltip and aria-label to disabled dates
+            if (dayElem.classList.contains('flatpickr-disabled')) {
+                const startDate = startDatePicker.selectedDates[0];
+                if (startDate) {
+                    const currentDate = new Date(dObj);
+                    if (currentDate < startDate) {
+                        dayElem.title = 'Date before start date';
+                        dayElem.setAttribute('aria-label', 'before start date');
+                        dayElem.classList.add('disabled-before');
+                    } else {
+                        dayElem.title = 'Date after 2-week range';
+                        dayElem.setAttribute('aria-label', 'after 2-week range');
+                        dayElem.classList.add('disabled-after');
+                    }
+                } else {
+                    dayElem.title = 'Date outside 2-week range';
+                }
+            }
+        },
         disable: [
             function(date) {
                 if (!startDatePicker.selectedDates[0]) return true;
                 const startDate = startDatePicker.selectedDates[0];
                 const maxDate = new Date(startDate);
-                maxDate.setDate(maxDate.getDate() + 14);
+                maxDate.setDate(maxDate.getDate() + 13); // 13 days after start = 2 weeks total
                 return date < startDate || date > maxDate;
             }
         ]
@@ -91,8 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate date difference
         const diffTime = Math.abs(endDate - startDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 14) {
-            errorDiv.textContent = 'Sorry: maximum 2 week span';
+        if (diffDays > 13) { // Changed from 14 to 13 to match the 2-week limit
+            errorDiv.textContent = 'Please select a maximum of 2 consecutive weeks';
             errorDiv.classList.remove('d-none');
             return;
         }

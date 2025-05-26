@@ -1,18 +1,20 @@
 [project]
-name = "repl-nix-workspace"
+name = "bookinglink-to-emailtext"
 version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.11"
+description = "A tool to scrape calendar availability and convert to email text"
 dependencies = [
-    "beautifulsoup4>=4.13.3",
-    "email-validator>=2.2.0",
-    "flask>=3.1.0",
-    "flask-sqlalchemy>=3.1.1",
-    "gunicorn>=23.0.0",
-    "psycopg2-binary>=2.9.10",
-    "requests>=2.32.3",
-    "scraper>=0.1.0",
-    "selenium>=4.29.0",
-    "trafilatura>=2.0.0",
-    "webdriver-manager>=4.0.2",
+    "flask>=3.0.0",
+    "selenium>=4.0.0",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "pytz>=2024.1",
+    "gunicorn>=21.2.0"
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true

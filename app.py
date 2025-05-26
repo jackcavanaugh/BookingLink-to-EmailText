@@ -3,10 +3,19 @@ import logging
 from flask import Flask, render_template, request, jsonify
 from scraper import scrape_calendar_availability
 from urllib.parse import urlparse
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
+import json
+from datetime import datetime, timedelta
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/app.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -100,13 +109,15 @@ def scrape():
             result = scrape_calendar_availability(url, start_date, end_date, timezone)
             availability = result.get('slots', [])
             increment_minutes = result.get('increment_minutes')
+            errors = result.get('errors')
+            partial_success = result.get('partial_success', False)
 
-            if not availability:
+            if not availability and not partial_success:
                 return jsonify({
                     'error': 'No available time slots found in the selected date range'
                 }), 404
 
-            # Include increment information and timezone in response
+            # Prepare response data
             response_data = {
                 'success': True,
                 'availability': availability,
@@ -116,6 +127,12 @@ def scrape():
             # Add timezone note if needed
             if not any(slot.get('timezone') for slot in availability):
                 response_data['note'] = f'Times shown in {timezone}'
+
+            # Add error information if there were partial failures
+            if partial_success:
+                response_data['partial_success'] = True
+                response_data['errors'] = errors
+                response_data['note'] = 'Some dates could not be processed. See errors for details.'
 
             return jsonify(response_data)
 
@@ -128,6 +145,11 @@ def scrape():
             return jsonify({
                 'error': 'The calendar page took too long to load. Please try again.'
             }), 504
+        except WebDriverException as e:
+            logger.error(f"WebDriver error: {str(e)}")
+            return jsonify({
+                'error': 'There was a problem accessing the calendar. Please try again.'
+            }), 503
         except Exception as e:
             logger.error(f"Error during scraping: {str(e)}")
             return jsonify({
@@ -141,4 +163,4 @@ def scrape():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

@@ -1,51 +1,68 @@
-/* Custom styles to complement Bootstrap dark theme */
+/* Custom styles for light theme */
+:root {
+    --primary-color: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --border-color: #dee2e6;
+    --text-muted: #6c757d;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
 .card {
-    background-color: var(--bs-dark);
-    border: 1px solid var(--bs-gray-700);
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
 }
 
 pre {
-    color: var(--bs-light);
-    background-color: var(--bs-gray-900) !important;
-    border: 1px solid var(--bs-gray-700);
+    color: #212529;
+    background-color: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
 }
 
 .form-control {
-    background-color: var(--bs-gray-900);
-    border-color: var(--bs-gray-700);
-    color: var(--bs-light);
+    background-color: #ffffff;
+    border-color: var(--border-color);
+    color: #212529;
 }
 
 .form-control:focus {
-    background-color: var(--bs-gray-800);
-    border-color: var(--bs-primary);
-    color: var(--bs-light);
+    background-color: #ffffff;
+    border-color: var(--primary-color);
+    color: #212529;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
-/* Flatpickr dark theme customization */
+/* Flatpickr light theme customization */
 .flatpickr-calendar {
-    background: #1a1d20 !important;
-    border-color: #343a40 !important;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3) !important;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 3px 13px rgba(0, 0, 0, 0.08);
+    padding: 8px;
 }
 
 /* Regular day styling */
 .flatpickr-calendar .flatpickr-day {
-    color: #ffffff !important;
+    color: #212529 !important;
     border: 1px solid transparent !important;
     background: transparent !important;
 }
 
 /* Selected day styling */
 .flatpickr-calendar .flatpickr-day.selected {
-    background: #0d6efd !important;
-    border-color: #0d6efd !important;
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
     color: #ffffff !important;
 }
 
-/* Hover effect for available days only */
+/* Hover effect for available days */
 .flatpickr-calendar .flatpickr-day:not(.disabled):not(.notAllowed):hover {
-    background: #343a40 !important;
+    background: #e9ecef !important;
 }
 
 /* Enhanced styling for disabled/unavailable dates */
@@ -55,8 +72,8 @@ pre {
 .flatpickr-calendar .flatpickr-day.notAllowed,
 .flatpickr-calendar .flatpickr-day.notAllowed.prevMonthDay,
 .flatpickr-calendar .flatpickr-day.notAllowed.nextMonthDay {
-    color: #343a40 !important;  /* Dark grey text */
-    background-color: #212529 !important;  /* Darker background */
+    color: #adb5bd !important;
+    background-color: #f8f9fa !important;
     border: none !important;
     cursor: not-allowed !important;
     text-decoration: line-through !important;
@@ -64,7 +81,7 @@ pre {
 
 /* Calendar header styling */
 .flatpickr-current-month {
-    color: #ffffff !important;
+    color: #212529 !important;
     font-size: 1.1em !important;
     font-weight: 500 !important;
     padding: 7px 0 0 0 !important;
@@ -72,8 +89,8 @@ pre {
 
 /* Style weekday names */
 .flatpickr-weekday {
-    color: #ffffff !important;
-    font-weight: bold !important;
+    color: var(--text-muted) !important;
+    font-weight: 500 !important;
     font-size: 90% !important;
     background: transparent !important;
 }
@@ -81,30 +98,18 @@ pre {
 /* Month/year navigation arrows */
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
-    fill: #ffffff !important;
+    fill: var(--text-muted) !important;
     padding: 5px !important;
 }
 
 .flatpickr-months .flatpickr-prev-month:hover,
 .flatpickr-months .flatpickr-next-month:hover {
-    fill: #0d6efd !important;
-}
-
-/* Hide year navigation arrows while keeping year visible */
-.flatpickr-current-month .numInputWrapper .arrowUp,
-.flatpickr-current-month .numInputWrapper .arrowDown {
-    display: none !important;
-}
-
-.flatpickr-current-month .numInputWrapper input.cur-year {
-    pointer-events: none !important;
-    border: none !important;
-    background: transparent !important;
+    fill: var(--primary-color) !important;
 }
 
 /* Today button styling */
 .flatpickr-today-button {
-    background: #0d6efd !important;
+    background: var(--primary-color) !important;
     color: #ffffff !important;
     border: none !important;
     padding: 5px 10px !important;
@@ -115,69 +120,212 @@ pre {
 }
 
 .flatpickr-today-button:hover {
-    background: #0b5ed7 !important;
+    background: var(--primary-hover) !important;
 }
 
 /* Error message styling */
 .alert-danger {
-    background-color: var(--bs-danger);
-    color: white;
+    background-color: #f8d7da;
+    color: #842029;
     padding: 0.75rem 1.25rem;
     margin-top: 1rem;
     border-radius: 0.375rem;
     font-weight: 500;
+    border: 1px solid #f5c2c7;
 }
 
-/* Ensure proper spacing */
-.container {
-    max-width: 960px;
+/* Select2 Styling for Light Theme */
+.select2-container--bootstrap-5 .select2-selection {
+    background-color: #ffffff;
+    border-color: var(--border-color);
+    color: #212529;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #ffffff;
+    border-color: var(--border-color);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+    color: #212529;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: var(--border-color);
+}
+
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+.select2-container--bootstrap-5 .select2-selection__arrow b {
+    border-color: #212529 transparent transparent transparent;
+}
+
+/* Optgroup styling */
+.select2-container--bootstrap-5 .select2-results__group {
+    color: var(--primary-color);
+    font-weight: 600;
+    padding: 6px;
+}
+
+/* Button hover effects */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
 }
 
 /* Loading state styling */
 .spinner-border {
     margin-right: 0.5rem;
-}
-/* Select2 Styling for Dark Theme */
-.select2-container--bootstrap-5 .select2-selection {
-    background-color: #212529;
-    border-color: #495057;
-    color: #fff;
+    color: #ffffff;
 }
 
-.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    color: #fff;
+/* Date picker styles */
+.flatpickr-day {
+    border-radius: 4px;
+    margin: 2px;
+    height: 35px;
+    line-height: 35px;
 }
 
-.select2-container--bootstrap-5 .select2-dropdown {
-    background-color: #212529;
-    border-color: #495057;
+/* Base styles for disabled dates */
+.flatpickr-day.disabled:not(.prevMonthDay):not(.nextMonthDay),
+.flatpickr-day.notAllowed:not(.prevMonthDay):not(.nextMonthDay) {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
-.select2-container--bootstrap-5 .select2-results__option {
-    color: #fff;
+/* Dates in the past (in start date picker) */
+.flatpickr-day.disabled-past {
+    background: #e9ecef !important;
+    color: #6c757d !important;
+    text-decoration: line-through !important;
+    text-decoration-thickness: 2px !important;
+    text-decoration-color: #6c757d !important;
 }
 
-.select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
-    background-color: #0d6efd;
+/* Dates in the future (in start date picker) */
+.flatpickr-day.disabled-future {
+    background: #fff3f3 !important;
+    color: #dc3545 !important;
+    text-decoration: line-through !important;
+    text-decoration-thickness: 2px !important;
+    text-decoration-color: #dc3545 !important;
 }
 
-.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
-    background-color: #2c3034;
-    color: #fff;
-    border-color: #495057;
+/* Hover effects for past dates */
+.flatpickr-day.disabled-past:hover {
+    background: #dee2e6 !important;
+    color: #495057 !important;
 }
 
-.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
-    background-color: #0d6efd;
+/* Hover effects for future dates */
+.flatpickr-day.disabled-future:hover {
+    background: #ffe6e6 !important;
+    color: #dc3545 !important;
 }
 
-.select2-container--bootstrap-5 .select2-selection__arrow b {
-    border-color: #fff transparent transparent transparent;
+/* Previous/next month dates - no strikethrough */
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: #ccc;
+    background: #f8f9fa;
+    border-color: transparent;
+    text-decoration: none !important;
 }
 
-/* Optgroup styling */
-.select2-container--bootstrap-5 .select2-results__group {
-    color: #0d6efd;
-    font-weight: bold;
-    padding: 6px;
+/* Dates before start date (in end date picker) */
+.flatpickr-day.disabled-before {
+    background: #e9ecef !important;
+    color: #6c757d !important;
+    text-decoration: line-through !important;
+    text-decoration-thickness: 2px !important;
+    text-decoration-color: #6c757d !important;
+}
+
+/* Dates after 2-week range (in end date picker) */
+.flatpickr-day.disabled-after {
+    background: #fff3f3 !important;
+    color: #dc3545 !important;
+    text-decoration: line-through !important;
+    text-decoration-thickness: 2px !important;
+    text-decoration-color: #dc3545 !important;
+}
+
+/* Hover effects */
+.flatpickr-day.disabled-before:hover {
+    background: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+.flatpickr-day.disabled-after:hover {
+    background: #ffe6e6 !important;
+    color: #dc3545 !important;
+}
+
+/* Remove the diagonal line since we're using text-decoration */
+.flatpickr-day.disabled::after {
+    display: none;
+}
+
+/* Add a subtle warning color to dates outside the 2-week range */
+.flatpickr-day.disabled:not(.prevMonthDay):not(.nextMonthDay) {
+    background: #fff3f3;
+    color: #dc3545;
+}
+
+.flatpickr-day.disabled:not(.prevMonthDay):not(.nextMonthDay):hover {
+    background: #ffe6e6;
+}
+
+/* Invalid URL field styling */
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.1) !important;
+}
+
+.form-control.is-invalid::placeholder {
+    color: #dc3545 !important;
+    font-style: italic;
+}
+
+/* Remove default browser validation styling */
+.form-control:invalid {
+    box-shadow: none;
+}
+
+/* Remove default browser validation message */
+.form-control:invalid::-webkit-validation-bubble-message {
+    display: none;
 }

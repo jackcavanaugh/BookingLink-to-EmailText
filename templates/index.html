@@ -1,82 +1,86 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendar Link to Text</title>
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v={{ range(1, 10000) | random }}">
 </head>
-<body>
+<body class="bg-light">
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h1 class="card-title mb-4">Calendar Link to Text</h1>
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <h1 class="card-title mb-4 text-primary">Calendar Link to Text</h1>
 
                         <form id="scraperForm" class="mb-4">
                             <div class="mb-3">
-                                <label for="url" class="form-label">Calendar URL</label>
+                                <label for="url" class="form-label fw-medium">Calendar URL</label>
                                 <input type="url" class="form-control" id="url" name="url" required
-                                    placeholder="https://calendly.com/your-link">
-                                <div class="form-text">Supported platforms: Hubspot</div>
-                                <div class="form-text">Untested: Calendly, Outlook</div>
+                                    placeholder="https://meetings.hubspot.com/your-name/30min">
+                                <div class="form-text text-muted">Supported platforms: Hubspot</div>
+                                <div class="form-text text-muted">Untested: Calendly, Outlook</div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-md-4">
-                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <label for="start_date" class="form-label fw-medium">Start Date</label>
                                     <input type="text" class="form-control datepicker" id="start_date" name="start_date" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="end_date" class="form-label">End Date</label>
+                                    <label for="end_date" class="form-label fw-medium">End Date</label>
                                     <input type="text" class="form-control datepicker" id="end_date" name="end_date" required>
+                                    <div class="form-text text-muted mt-1">
+                                        <i class="bi bi-info-circle"></i> Max two weeks
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="timezone" class="form-label">Timezone</label>
+                                    <label for="timezone" class="form-label fw-medium">Timezone</label>
                                     <select class="form-select" id="timezone" name="timezone" required>
-                                    <optgroup label="North America">
-                                        <option value="America/New_York">Eastern Time (ET)</option>
-                                        <option value="America/Chicago">Central Time (CT)</option>
-                                        <option value="America/Denver">Mountain Time (MT)</option>
-                                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                                    </optgroup>
-                                    <optgroup label="Europe">
-                                        <option value="Europe/London">London (GMT)</option>
-                                        <option value="Europe/Paris">Paris (CET)</option>
-                                        <option value="Europe/Berlin">Berlin (CET)</option>
-                                        <option value="Europe/Amsterdam">Amsterdam (CET)</option>
-                                    </optgroup>
-                                    <optgroup label="Asia/Pacific">
-                                        <option value="Asia/Kolkata">India (IST)</option>
-                                        <option value="Asia/Singapore">Singapore (SGT)</option>
-                                        <option value="Asia/Tokyo">Tokyo (JST)</option>
-                                        <option value="Asia/Shanghai">Beijing (CST)</option>
-                                        <option value="Australia/Perth">Perth</option>
-                                        <option value="Australia/Melbourne">Melbourne</option>
-                                        <option value="Australia/Sydney">Sydney</option>
-                                        <option value="Pacific/Auckland">Auckland</option>
-                                    </optgroup>
-                                </select>
+                                        <optgroup label="North America">
+                                            <option value="America/New_York">Eastern Time (ET)</option>
+                                            <option value="America/Chicago">Central Time (CT)</option>
+                                            <option value="America/Denver">Mountain Time (MT)</option>
+                                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                                        </optgroup>
+                                        <optgroup label="Europe">
+                                            <option value="Europe/London">London (GMT)</option>
+                                            <option value="Europe/Paris">Paris (CET)</option>
+                                            <option value="Europe/Berlin">Berlin (CET)</option>
+                                            <option value="Europe/Amsterdam">Amsterdam (CET)</option>
+                                        </optgroup>
+                                        <optgroup label="Asia/Pacific">
+                                            <option value="Asia/Kolkata">India (IST)</option>
+                                            <option value="Asia/Singapore">Singapore (SGT)</option>
+                                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                                            <option value="Asia/Shanghai">Beijing (CST)</option>
+                                            <option value="Australia/Perth">Perth</option>
+                                            <option value="Australia/Melbourne">Melbourne</option>
+                                            <option value="Australia/Sydney">Sydney</option>
+                                            <option value="Pacific/Auckland">Auckland</option>
+                                        </optgroup>
+                                    </select>
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <button type="submit" class="btn btn-primary px-4" id="submitBtn">
                                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                                 Get Availability
                             </button>
                         </form>
 
                         <div id="result" class="d-none">
-                            <h5>Available Time Slots:</h5>
+                            <h5 class="text-primary mb-3">Available Time Slots:</h5>
                             <div class="position-relative">
-                                <pre id="availabilityText" class="bg-dark p-3 rounded"></pre>
+                                <pre id="availabilityText" class="bg-white p-3 rounded border"></pre>
                                 <div id="timezoneInfo" class="text-muted small mb-2"></div>
-                                <button class="btn btn-sm btn-secondary position-absolute top-0 end-0 m-2" id="copyBtn">
+                                <button class="btn btn-sm btn-outline-primary position-absolute top-0 end-0 m-2" id="copyBtn">
                                     <i class="bi bi-clipboard"></i> Copy
                                 </button>
                             </div>
@@ -90,6 +94,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}?v={{ range(1, 10000) | random }}"></script>
